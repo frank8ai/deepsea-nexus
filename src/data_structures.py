@@ -1,5 +1,5 @@
 """
-数据结构和类型定义
+Data structures and type definitions for Deep-Sea Nexus v2.0
 """
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
@@ -8,7 +8,7 @@ from enum import Enum
 
 
 class SessionStatus(Enum):
-    """Session 状态"""
+    """Session status enumeration"""
     ACTIVE = "active"
     PAUSED = "paused"
     ARCHIVED = "archived"
@@ -16,61 +16,58 @@ class SessionStatus(Enum):
 
 @dataclass
 class SessionMetadata:
-    """Session 元数据"""
-    uuid: str                          # 唯一标识
-    topic: str                        # 话题
-    created_at: str                   # 创建时间
-    last_active: str                  # 最后活跃
+    """Session metadata"""
+    uuid: str                           # Unique identifier
+    topic: str                          # Topic name
+    created_at: str                     # Creation time
+    last_active: str                    # Last active time
     status: SessionStatus = SessionStatus.ACTIVE
-    gold_count: int = 0               # GOLD 标记数
-    word_count: int = 0               # 字数
+    gold_count: int = 0                 # Number of GOLD markers
+    word_count: int = 0                 # Word count
     tags: List[str] = field(default_factory=list)
 
 
 @dataclass
 class Session:
-    """完整 Session"""
+    """Complete session"""
     metadata: SessionMetadata
-    content: str                      # 内容
+    content: str                        # Content
 
 
 @dataclass
 class DailyIndex:
-    """每日索引"""
-    date: str                          # 日期 YYYY-MM-DD
-    sessions: Dict[str, SessionMetadata]  # Session 列表
-    gold_keys: List[str]              # GOLD 关键词
-    topics: List[str]                # 话题列表
-    paused_sessions: Dict[str, str]  # 暂停的 Session
+    """Daily index"""
+    date: str                           # Date YYYY-MM-DD
+    sessions: Dict[str, SessionMetadata]  # Session list
+    gold_keys: List[str]                # GOLD keywords
+    topics: List[str]                   # Topic list
+    paused_sessions: Dict[str, str] = field(default_factory=dict)  # Paused sessions
 
 
 @dataclass
 class RecallResult:
-    """召回结果"""
+    """Recall result"""
     session_id: str
-    relevance: float                 # 相关度 0-1
-    content: str                     # 召回内容
-    source: str                      # 来源
+    relevance: float                    # Relevance 0-1
+    content: str                        # Retrieved content
+    source: str                         # Source
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class IndexEntry:
-    """索引条目"""
+    """Index entry"""
     session_id: str
-    status: str                      # active/paused
-    topic: str                      # 话题
+    status: str                         # active/paused
+    topic: str                         # Topic
     gold_keywords: List[str] = field(default_factory=list)
     last_active: str = ""
 
 
 @dataclass
 class NexusConfig:
-    """Nexus 配置"""
+    """Nexus configuration"""
     base_path: str = "~/workspace/DEEP_SEA_NEXUS_V2"
     memory_path: str = "memory/90_Memory"
     max_index_tokens: int = 300
     max_session_tokens: int = 1000
-    auto_split_size: int = 5000
-    flush_enabled: bool = True
-    flush_time: str = "03:00"

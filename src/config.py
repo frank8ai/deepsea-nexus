@@ -1,67 +1,82 @@
 """
-配置管理模块
+Configuration management module for Deep-Sea Nexus v2.0
 """
 import os
-from pathlib import Path
-from typing import Any, Dict, Optional
-
-import yaml
-from dotenv import load_dotenv
+import json
 
 
 class NexusConfig:
     """
-    Nexus 配置管理器
+    Nexus Configuration Manager
     
-    功能：
-    - 加载 YAML 配置
-    - 支持环境变量覆盖
-    - 路径展开
+    Features:
+    - Load configuration from JSON/YAML
+    - Support environment variable overrides
+    - Path expansion
     """
     
-    _instance: Optional['NexusConfig'] = None
-    _config: Dict[str, Any] = {}
+    _instance = None
     
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            cls._instance = super(NexusConfig, cls).__new__(cls)
+            cls._instance._config = {}
             cls._instance._load_config()
         return cls._instance
     
-    def _load_config(self):
-        """加载配置文件"""
-        load_dotenv()
-        
-        # 查找配置文件
+    @staticmethod
+    def _load_config():
+        """Load configuration file"""
+        # This method is called on the instance, so we need to reference it properly
+        pass
+    
+    def __init__(self):
+        # Only load config once
+        if not hasattr(self, '_initialized'):
+            self._config = {}
+            self._load_config_instance()
+            self._initialized = True
+    
+    def _load_config_instance(self):
+        """Load configuration file for the instance"""
+        # Try to load from multiple locations
         config_paths = [
-            Path.cwd() / "config.yaml",
-            Path.home() / ".config" / "deep-sea-nexus" / "config.yaml",
-            Path(os.environ.get("DEEP_SEA_NEXUS_CONFIG", "config.yaml"))
+            os.path.join(os.getcwd(), "config.json"),  # Current working directory
+            os.path.join(os.getcwd(), "config.yaml"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json"),  # Project config
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml"),  # Project config
+            os.path.join(os.path.expanduser("~"), ".config", "deep-sea-nexus", "config.json"),
+            os.path.join(os.environ.get("DEEP_SEA_NEXUS_CONFIG", "config.json")),
         ]
         
         config_path = None
         for p in config_paths:
-            if p.exists():
-                config_path = p
+            if os.path.exists(p):
+                config_path = os.path.abspath(p)
                 break
         
+        # If no config file exists, use default config
         if config_path is None:
-            # 使用默认配置
             self._config = self._default_config()
             return
         
-        with open(config_path, 'r', encoding='utf-8') as f:
-            self._config = yaml.safe_load(f)
+        # Determine file type and load accordingly
+        if config_path.endswith('.json'):
+            with open(config_path, 'r') as f:
+                self._config = json.load(f)
+        else:
+            # For YAML files, use default config if yaml module not available
+            self._config = self._default_config()
     
-    def _default_config(self) -> Dict:
-        """默认配置"""
+    def _default_config(self):
+        """Return default configuration"""
         return {
             "project": {
                 "name": "Deep-Sea Nexus v2.0",
                 "version": "2.0.0"
             },
             "paths": {
-                "base": str(Path.home() / "workspace" / "DEEP_SEA_NEXUS_V2"),
+                "base": os.path.join(os.path.expanduser("~"), "workspace", "DEEP_SEA_NEXUS_V2"),
                 "memory": "memory/90_Memory"
             },
             "index": {
@@ -74,16 +89,22 @@ class NexusConfig:
             "optional": {
                 "vector_store": False,
                 "rag_enabled": False,
-                "mcp_enabled": False
-            },
-            "flush": {
-                "enabled": True,
-                "time": "03:00"
+                "mcp_enabled": False,
+                "cross_date_search": False
             }
         }
     
-    def get(self, key: str, default: Any = None) -> Any:
-        """获取配置值 (支持点号路径)"""
+    def get(self, key, default=None):
+        """
+        Get configuration value (supports dot notation)
+        
+        Args:
+            key: Configuration key using dot notation (e.g. "index.max_tokens")
+            default: Default value if key not found
+        
+        Returns:
+            Configuration value or default
+        """
         keys = key.split('.')
         value = self._config
         
@@ -93,44 +114,41 @@ class NexusConfig:
             else:
                 return default
         
-        # 环境变量覆盖
+        # Handle environment variable references
         if isinstance(value, str) and value.startswith('$'):
-            return os.environ.get(value[1:], default)
+            env_key = value[1:]
+            return os.environ.get(env_key, default)
         
         return value if value is not None else default
     
-    @property
-    def base_path(self) -> Path:
-        path_str = self.get("paths.base", str(Path.cwd()))
-        return Path(os.path.expanduser(path_str))
+    def base_path(self):
+        """Base path for the application"""
+        return self.get("paths.base", os.path.join(os.getcwd()))
     
-    @property
-    def memory_path(self) -> Path:
-        return self.base_path / self.get("paths.memory", "memory/90_Memory")
+    def memory_path(self):
+        """Memory storage path"""
+        return os.path.join(self.base_path(), self.get("paths.memory", "memory/90_Memory"))
     
-    @property
-    def max_index_tokens(self) -> int:
+    def max_index_tokens(self):
+        """Maximum tokens allowed in index"""
         return int(self.get("index.max_index_tokens", 300))
     
-    @property
-    def max_session_tokens(self) -> int:
+    def max_session_tokens(self):
+        """Maximum tokens allowed per session"""
         return int(self.get("index.max_session_tokens", 1000))
     
-    @property
-    def vector_store_enabled(self) -> bool:
+    def vector_store_enabled(self):
+        """Whether vector store is enabled"""
         return bool(self.get("optional.vector_store", False))
     
-    @property
-    def mcp_enabled(self) -> bool:
+    def mcp_enabled(self):
+        """Whether MCP is enabled"""
         return bool(self.get("optional.mcp_enabled", False))
     
-    @property
-    def flush_enabled(self) -> bool:
-        return bool(self.get("flush.enabled", True))
-    
-    @property
-    def flush_time(self) -> str:
-        return self.get("flush.time", "03:00")
-    
-    def __repr__(self) -> str:
-        return f"NexusConfig(base={self.base_path})"
+    def cross_date_search_enabled(self):
+        """Whether cross-date search is enabled"""
+        return bool(self.get("optional.cross_date_search", False))
+
+
+# Global config instance
+config = NexusConfig()

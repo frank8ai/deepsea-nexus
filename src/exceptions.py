@@ -1,62 +1,42 @@
 """
-异常定义模块
+Custom exceptions for Deep-Sea Nexus v2.0
 """
 
 
 class NexusException(Exception):
-    """Nexus 基础异常"""
+    """Base exception for Nexus"""
     pass
 
 
 class SessionNotFoundError(NexusException):
-    """Session 未找到异常"""
-    
+    """Raised when a session is not found"""
     def __init__(self, session_id: str):
         self.session_id = session_id
-        super().__init__(f"Session 未找到: {session_id}")
+        super().__init__(f"Session not found: {session_id}")
 
 
 class IndexFileError(NexusException):
-    """索引文件异常"""
-    
-    def __init__(self, message: str):
-        super().__init__(f"索引文件错误: {message}")
+    """Raised when there's an error with index files"""
+    def __init__(self, message: str, file_path: str = None):
+        self.file_path = file_path
+        super().__init__(f"Index file error: {message}" + (f" at {file_path}" if file_path else ""))
 
 
 class StorageFullError(NexusException):
-    """存储空间不足异常"""
-    
-    def __init__(self, path: str):
-        self.path = path
-        super().__init__(f"存储空间不足: {path}")
+    """Raised when storage is full"""
+    def __init__(self, message: str = "Storage is full"):
+        super().__init__(message)
 
 
 class TimeoutError(NexusException):
-    """操作超时异常"""
-    
-    def __init__(self, operation: str, timeout: int):
+    """Raised when an operation times out"""
+    def __init__(self, operation: str, timeout: float):
         self.operation = operation
         self.timeout = timeout
-        super().__init__(f"操作超时: {operation} (超时 {timeout} 秒)")
-
-
-class LockAcquisitionError(NexusException):
-    """获取文件锁失败异常"""
-    
-    def __init__(self, path: str):
-        self.path = path
-        super().__init__(f"无法获取文件锁: {path}")
+        super().__init__(f"Operation '{operation}' timed out after {timeout}s")
 
 
 class ConfigurationError(NexusException):
-    """配置错误异常"""
-    
-    def __init__(self, key: str):
-        super().__init__(f"配置错误: {key}")
-
-
-class MigrationError(NexusException):
-    """迁移错误异常"""
-    
+    """Raised when there's a configuration error"""
     def __init__(self, message: str):
-        super().__init__(f"迁移错误: {message}")
+        super().__init__(f"Configuration error: {message}")

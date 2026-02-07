@@ -34,15 +34,5 @@ env/
 *~
 .DS_Store
 
-# Config (contains API keys)
-config.yaml
-auth-*.json
-
-# Memory data
+# Memory data (large, not for git)
 memory/
-*.md
-
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/

@@ -1,21 +1,21 @@
 """
-日志系统模块
+Logging system for Deep-Sea Nexus v2.0
 """
 import logging
-import logging.handlers
-import os
+import sys
 from pathlib import Path
 from typing import Optional
 
 
 class NexusLogger:
     """
-    Nexus 日志管理器
+    Nexus Logger
     
-    功能：
-    - 配置日志级别
-    - 控制台输出
-    - 文件轮转
+    Features:
+    - Configurable log levels
+    - Console output
+    - File output (optional)
+    - Structured logging
     """
     
     _instance: Optional['NexusLogger'] = None
@@ -24,66 +24,79 @@ class NexusLogger:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._init_logger()
+            cls._instance._setup_logger()
         return cls._instance
     
-    def _init_logger(self):
-        """初始化日志器"""
-        self._logger = logging.getLogger("DeepSeaNexus")
+    def _setup_logger(self):
+        """Setup the logger"""
+        self._logger = logging.getLogger('DeepSeaNexus')
+        
+        # Prevent adding handlers multiple times
+        if self._logger.handlers:
+            return
+            
+        # Set default level
         self._logger.setLevel(logging.INFO)
         
-        # 清除现有处理器
-        self._logger.handlers.clear()
-        
-        # 控制台处理器
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.INFO)
-        
-        # 格式
+        # Create formatter
         formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
-        console_handler.setFormatter(formatter)
         
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
         self._logger.addHandler(console_handler)
+        
+        # Clear any default handlers to prevent duplicates
+        self._logger.propagate = False
     
-    def set_level(self, level: str):
-        """设置日志级别"""
-        level_map = {
-            "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO,
-            "WARNING": logging.WARNING,
-            "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL
-        }
-        self._logger.setLevel(level_map.get(level, logging.INFO))
+    def set_level(self, level: int):
+        """Set logging level"""
+        if self._logger:
+            self._logger.setLevel(level)
+    
+    def add_file_handler(self, file_path: str, level: int = logging.DEBUG):
+        """Add file handler"""
+        if self._logger:
+            from logging.handlers import RotatingFileHandler
+            file_handler = RotatingFileHandler(
+                file_path, 
+                maxBytes=10*1024*1024,  # 10MB
+                backupCount=5
+            )
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+            )
+            file_handler.setFormatter(formatter)
+            file_handler.setLevel(level)
+            self._logger.addHandler(file_handler)
     
     def debug(self, message: str):
-        """Debug 日志"""
-        self._logger.debug(message)
+        """Debug level log"""
+        if self._logger:
+            self._logger.debug(message)
     
     def info(self, message: str):
-        """Info 日志"""
-        self._logger.info(message)
+        """Info level log"""
+        if self._logger:
+            self._logger.info(message)
     
     def warning(self, message: str):
-        """Warning 日志"""
-        self._logger.warning(message)
+        """Warning level log"""
+        if self._logger:
+            self._logger.warning(message)
     
     def error(self, message: str):
-        """Error 日志"""
-        self._logger.error(message)
+        """Error level log"""
+        if self._logger:
+            self._logger.error(message)
     
     def critical(self, message: str):
-        """Critical 日志"""
-        self._logger.critical(message)
+        """Critical level log"""
+        if self._logger:
+            self._logger.critical(message)
 
 
-# 全局日志实例
+# Global logger instance
 logger = NexusLogger()
-
-
-def get_logger(name: str = "DeepSeaNexus") -> NexusLogger:
-    """获取日志器"""
-    return logger

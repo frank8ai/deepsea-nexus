@@ -1,0 +1,38 @@
+{
+  "paths": {
+    "base": "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2", 
+    "archive_monthly": "memory/90_Memory/YYYY-MM", 
+    "inbox": "memory/00_Inbox", 
+    "memory": "memory/90_Memory"
+  }, 
+  "logging": {
+    "format": "%(asctime)s - %(levelname)s - %(message)s", 
+    "level": "INFO"
+  }, 
+  "index": {
+    "max_session_tokens": 1000, 
+    "max_index_tokens": 300, 
+    "max_line_length": 80
+  }, 
+  "project": {
+    "version": "2.0.0", 
+    "name": "Deep-Sea Nexus v2.0", 
+    "author": "OpenClaw"
+  }, 
+  "session": {
+    "min_size": 100, 
+    "auto_split_size": 5000, 
+    "name_format": "session_HHMM_Topic"
+  }, 
+  "flush": {
+    "time": "03:00", 
+    "enabled": true, 
+    "auto_hours": 24
+  }, 
+  "optional": {
+    "cross_date_search": false, 
+    "rag_enabled": false, 
+    "mcp_enabled": false, 
+    "vector_store": false
+  }
+}

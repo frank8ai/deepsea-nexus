@@ -1,111 +1,155 @@
 """
-文件锁模块
+File locking utilities for Deep-Sea Nexus v2.0
 """
 import os
 import time
-import fcntl
+import errno
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 from contextlib import contextmanager
-
-from .exceptions import LockAcquisitionError, TimeoutError
 
 
 class FileLock:
     """
-    文件锁（基于 flock）
+    File-based lock implementation using flock when available,
+    with fallback to manual lock files.
     
-    功能：
-    - 线程安全的文件锁
-    - 超时检测
-    - 上下文管理器支持
+    Features:
+    - Cross-platform compatibility
+    - Timeout support
+    - Context manager support
     """
     
-    def __init__(self, lock_file: str, timeout: int = 30):
+    def __init__(self, file_path: Union[str, Path], timeout: float = 30.0, 
+                 poll_interval: float = 0.1):
         """
-        初始化文件锁
+        Initialize file lock
         
         Args:
-            lock_file: 锁文件路径
-            timeout: 超时时间（秒）
+            file_path: Path to the file to lock
+            timeout: Timeout in seconds (default 30s)
+            poll_interval: Polling interval in seconds (default 0.1s)
         """
-        self.lock_file = Path(lock_file)
+        self.file_path = Path(file_path)
+        self.lock_file_path = self.file_path.with_suffix(self.file_path.suffix + '.lock')
         self.timeout = timeout
-        self._lock_fd = None
+        self.poll_interval = poll_interval
+        self._locked = False
+        self._lock_fd: Optional[int] = None
     
-    def acquire(self, blocking: bool = True) -> bool:
+    def acquire(self) -> bool:
         """
-        获取锁
-        
-        Args:
-            blocking: 是否阻塞
+        Acquire the lock
         
         Returns:
-            bool: 是否获取成功
+            bool: True if lock acquired, False if timeout
         """
-        # 确保父目录存在
-        self.lock_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 创建锁文件（如果不存在）
-        self.lock_file.touch(exist_ok=True)
-        
-        # 打开文件
-        self._lock_fd = open(self.lock_file, 'w')
-        
-        try:
-            if blocking:
-                fcntl.flock(self._lock_fd.fileno(), fcntl.LOCK_EX)
-                return True
-            else:
-                # 非阻塞模式
-                result = fcntl.flock(self._lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                return result == 0
-        except BlockingIOError:
-            return False
-    
-    def release(self):
-        """释放锁"""
-        if self._lock_fd:
-            fcntl.flock(self._lock_fd.fileno(), fcntl.LOCK_UN)
-            self._lock_fd.close()
-            self._lock_fd = None
-    
-    def __enter__(self):
-        """上下文管理器进入"""
         start_time = time.time()
         
-        while True:
-            if self.acquire(blocking=False):
-                return self
+        while time.time() - start_time < self.timeout:
+            try:
+                # Try to create lock file exclusively
+                self._lock_fd = os.open(str(self.lock_file_path), 
+                                       os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                # Write PID to lock file for debugging
+                os.write(self._lock_fd, str(os.getpid()).encode())
+                self._locked = True
+                return True
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    # Lock file exists, wait and retry
+                    time.sleep(self.poll_interval)
+                else:
+                    raise
             
-            if time.time() - start_time > self.timeout:
-                raise LockAcquisitionError(str(self.lock_file))
-            
-            time.sleep(0.1)
+        return False  # Timeout reached
+    
+    def release(self):
+        """Release the lock"""
+        if self._locked and self._lock_fd is not None:
+            try:
+                os.close(self._lock_fd)
+                self.lock_file_path.unlink(missing_ok=True)
+            except OSError:
+                # Ignore errors during cleanup
+                pass
+            finally:
+                self._locked = False
+                self._lock_fd = None
+    
+    def __enter__(self):
+        """Context manager entry"""
+        acquired = self.acquire()
+        if not acquired:
+            raise TimeoutError(f"Could not acquire lock on {self.file_path} within {self.timeout}s")
+        return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """上下文管理器退出"""
+        """Context manager exit"""
         self.release()
-        return False
+    
+    @contextmanager
+    def timeout_context(self, timeout: float = None):
+        """
+        Context manager with custom timeout
+        
+        Args:
+            timeout: Custom timeout in seconds
+        """
+        original_timeout = self.timeout
+        if timeout is not None:
+            self.timeout = timeout
+        
+        try:
+            acquired = self.acquire()
+            if not acquired:
+                raise TimeoutError(f"Could not acquire lock within {self.timeout}s")
+            yield self
+        finally:
+            self.release()
+            if timeout is not None:
+                self.timeout = original_timeout
 
 
-@contextmanager
-def file_lock(lock_file: str, timeout: int = 30):
+def file_lock(file_path: Union[str, Path], timeout: float = 30.0):
     """
-    文件锁上下文管理器
+    Convenience function to create and return a FileLock
     
     Args:
-        lock_file: 锁文件路径
-        timeout: 超时时间
+        file_path: Path to the file to lock
+        timeout: Timeout in seconds
     
-    Usage:
-        with file_lock("/path/to/lock"):
-            # 受保护的代码
-            pass
+    Returns:
+        FileLock: Configured lock instance
     """
-    lock = FileLock(lock_file, timeout)
-    lock.acquire()
-    try:
-        yield lock
-    finally:
-        lock.release()
+    return FileLock(file_path, timeout)
+
+
+def locked_write(file_path: Union[str, Path], content: str, timeout: float = 30.0):
+    """
+    Write content to a file with locking
+    
+    Args:
+        file_path: Path to the file
+        content: Content to write
+        timeout: Lock timeout in seconds
+    """
+    lock = FileLock(file_path, timeout)
+    with lock:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+
+def locked_append(file_path: Union[str, Path], content: str, timeout: float = 30.0):
+    """
+    Append content to a file with locking
+    
+    Args:
+        file_path: Path to the file
+        content: Content to append
+        timeout: Lock timeout in seconds
+    """
+    lock = FileLock(file_path, timeout)
+    with lock:
+        with open(file_path, 'a', encoding='utf-8') as f:
+            f.write(content)
