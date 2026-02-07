@@ -13,6 +13,40 @@ NC='\033[0m' # No Color
 PROJECT_DIR="${HOME}/.openclaw/workspace/DEEP_SEA_NEXUS_V2"
 BACKUP_DIR="${PROJECT_DIR}/backups"
 
+# Parse arguments
+TARGET=""
+AUTO_YES=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --target)
+            TARGET="$2"
+            shift 2
+            ;;
+        --yes)
+            AUTO_YES=true
+            shift
+            ;;
+        --help)
+            echo "用法: rollback.sh [选项]"
+            echo ""
+            echo "选项:"
+            echo "  --target VERSION  指定回滚版本 (tag 或 commit)"
+            echo "  --yes             自动确认 (非交互模式)"
+            echo "  --help            显示帮助"
+            echo ""
+            echo "示例:"
+            echo "  ./rollback.sh --target v2.0.0 --yes"
+            echo "  ./rollback.sh --target a210b64"
+            exit 0
+            ;;
+        *)
+            echo "未知参数: $1"
+            exit 1
+            ;;
+    esac
+done
+
 echo -e "${YELLOW}🔙 Deep-Sea Nexus v2.0 Rollback${NC}"
 echo ""
 
@@ -28,8 +62,11 @@ cd "${PROJECT_DIR}"
 echo "📋 可用的回滚点:"
 git tag -l | tail -10
 
-echo ""
-read -p "输入要回滚到的版本 (tag 或 commit): " TARGET
+# Check target
+if [ -z "$TARGET" ]; then
+    echo ""
+    read -p "输入要回滚到的版本 (tag 或 commit): " TARGET
+fi
 
 # Check if target exists
 if ! git rev-parse --verify "${TARGET}" &> /dev/null; then
@@ -51,8 +88,15 @@ echo -e "${YELLOW}⚠️  将要回滚到: ${TARGET}${NC}"
 echo "变更的文件:"
 git diff --name-only "${TARGET}" HEAD 2>/dev/null || echo "(首次部署，无历史变更)"
 
-echo ""
-read -p "确认回滚? (y/n): " CONFIRM
+# Confirm
+if [ "$AUTO_YES" = false ]; then
+    echo ""
+    read -p "确认回滚? (y/n): " CONFIRM
+else
+    echo ""
+    echo "⚠️  自动确认模式"
+    CONFIRM="y"
+fi
 
 if [ "${CONFIRM}" != "y" ] && [ "${CONFIRM}" != "Y" ]; then
     echo "已取消"
@@ -62,14 +106,8 @@ fi
 # Perform rollback
 echo -e "${GREEN}🔄 执行回滚...${NC}"
 
-if git rev-parse --verify "${TARGET}" &> /dev/null; then
-    git reset --hard "${TARGET}"
-    echo -e "${GREEN}✅ 已回滚到 ${TARGET}${NC}"
-else
-    # Try as commit
-    git reset --hard "${TARGET}"
-    echo -e "${GREEN}✅ 已回滚${NC}"
-fi
+git reset --hard "${TARGET}"
+echo -e "${GREEN}✅ 已回滚到 ${TARGET}${NC}"
 
 echo ""
 echo -e "${GREEN}✅ 回滚完成!${NC}"
