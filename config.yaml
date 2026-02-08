@@ -1,45 +1,51 @@
 # Deep-Sea Nexus v2.0 Configuration
-# =======================================
 
-# Project Information
-project:
-  name: "Deep-Sea Nexus v2.0"
-  version: "2.0.0"
-  author: "OpenClaw"
+# Vector Database Settings
+vector_store:
+  # Local ChromaDB path
+  persist_directory: "../memory/.vector_db"
+  # Collection name for notes
+  collection_name: "deep_sea_nexus_notes"
+  # Distance function: l2, ip, or cosine
+  distance_metric: "cosine"
 
-# Path Configuration
-paths:
-  base: "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2"
-  memory: "memory/90_Memory"
-  inbox: "memory/00_Inbox"
-  archive_monthly: "memory/90_Memory/YYYY-MM"
+# Embedding Model Settings
+embedding:
+  # Model name from HuggingFace
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  # Embedding dimension
+  dimension: 384
+  # Batch size for encoding
+  batch_size: 32
 
-# Index Configuration (Core Metrics)
-index:
-  max_index_tokens: 300          # < 300 tokens
-  max_session_tokens: 1000        # < 1000 tokens/轮
-  max_line_length: 80            # 索引行最大长度
+# Text Chunking Settings
+chunking:
+  # Maximum chunk size in characters
+  chunk_size: 1000
+  # Overlap between chunks
+  chunk_overlap: 100
+  # Minimum chunk size
+  min_chunk_size: 10
 
-# Session Configuration
-session:
-  auto_split_size: 5000        # 超过此大小自动分割
-  min_size: 100               # 最小 Session 大小
-  name_format: "session_HHMM_Topic"  # Session 命名
+# RAG Settings
+rag:
+  # Number of results to retrieve
+  top_k: 5
+  # Minimum similarity score threshold (0-1)
+  similarity_threshold: 0.5
+  # Maximum tokens for retrieved context
+  max_context_tokens: 2000
 
-# Flush Configuration
-flush:
-  enabled: true
-  auto_hours: 24
-  time: "03:00"
+# Memory Directory Settings
+memory:
+  # Root directory for notes
+  root_path: "../memory"
+  # Daily index file
+  daily_index: "_DAILY_INDEX.md"
+  # Session files pattern
+  session_pattern: "session_*.md"
 
-# Optional Features
-optional:
-  vector_store: false          # 默认关闭
-  rag_enabled: false          # 默认关闭
-  mcp_enabled: false          # v3.0 开启
-  cross_date_search: false     # 跨日期搜索
-
-# Logging
+# Logging Settings
 logging:
   level: "INFO"
-  format: "%(asctime)s - %(levelname)s - %(message)s"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
