@@ -35,55 +35,8 @@ except ImportError as e:
     NEXUS_AVAILABLE = False
     IMPORT_ERROR = str(e)
 
-# ===================== 触发词检测 =====================
-TRIGGER_PATTERNS = [
-    r'还记得(.+?)[吗?？]',      # 还记得X吗
-    r'上次.*提到(.+)',          # 上次提到X
-    r'之前.*说过(.+)',          # 之前说过X
-    r'之前.*讨论(.+)',          # 之前讨论X
-    r'之前.*决定(.+)',          # 之前决定X
-    r'前面.*内容(.+)',          # 前面内容X
-    r'之前.*项目(.+)',          # 之前项目X
-    r'上次.*对话(.+)',          # 上次对话X
-    r'之前.*聊天(.+)',          # 之前聊天X
-]
-
-# 停用词
-STOP_WORDS = {'的', '了', '是', '在', '我', '你', '他', '她', '它', '这', '那', '和', '与', '或', '就', '都', '也', '会', '可以', '什么', '怎么', '如何'}
-
-# 编译正则
-_TRIGGER_RE = [re.compile(p, re.IGNORECASE) for p in TRIGGER_PATTERNS]
-
-
-def detect_trigger(user_input: str) -> Optional[Dict[str, Any]]:
-    """检测触发词"""
-    for pattern in _TRIGGER_RE:
-        match = pattern.search(user_input)
-        if match:
-            # 提取触发内容
-            trigger_content = match.group(0)
-            # 提取查询词
-            query = user_input[match.end():].strip().rstrip("吗?？")
-            if not query:
-                query = user_input[:match.start()].strip()
-            
-            return {
-                "triggered": True,
-                "pattern": trigger_content,
-                "query": query or user_input,
-                "original_message": user_input
-            }
-    return None
-
-
-def extract_keywords(text: str, max_keywords: int = 5) -> List[str]:
-    """提取关键词"""
-    # 简单分词
-    words = re.findall(r'\b\w+\b', text.lower())
-    # 过滤停用词和短词
-    keywords = [w for w in words if w not in STOP_WORDS and len(w) > 2]
-    # 去重并返回
-    return list(dict.fromkeys(keywords))[:max_keywords]
+# ===================== 统一触发词检测（已移到 utils/triggers.py） =====================
+from .utils.triggers import detect_trigger, extract_keywords, smart_parse
 
 
 # ===================== 自动预热 =====================
