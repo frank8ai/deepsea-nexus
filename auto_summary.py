@@ -14,11 +14,11 @@ from typing import Optional, Dict, Any, List
 class SummaryParser:
     """摘要解析器"""
     
-    # 分隔符模式
-    SUMMARY_PATTERN = re.compile(
-        r'---SUMMARY---\s*(.+?)\s*---END---',
-        re.DOTALL | re.IGNORECASE
-    )
+    # 分隔符模式 - 支持多种格式
+    SUMMARY_PATTERNS = [
+        re.compile(r'## 📋 总结[^\n]*\n([\s\S]*?)(?=\n\n|$)', re.DOTALL),  # ## 📋 总结 格式
+        re.compile(r'---SUMMARY---\s*(.+?)\s*---END---', re.DOTALL | re.IGNORECASE),  # 旧格式
+    ]
     
     @classmethod
     def parse(cls, response: str) -> tuple:
@@ -33,16 +33,17 @@ class SummaryParser:
             - reply: 主体回复内容
             - summary: 摘要内容，无摘要时为 None
         """
-        match = cls.SUMMARY_PATTERN.search(response)
+        summary = None
         
-        if match:
-            summary = match.group(1).strip()
-            # 移除摘要部分，得到原文
-            reply = cls.SUMMARY_PATTERN.sub('', response).strip()
-            return reply, summary
-        else:
-            # 没有找到摘要格式
-            return response, None
+        for pattern in cls.SUMMARY_PATTERNS:
+            match = pattern.search(response)
+            if match:
+                summary = match.group(1).strip()
+                # 移除摘要部分，得到原文
+                response = pattern.sub('', response).strip()
+                break
+        
+        return response, summary
     
     @classmethod
     def create_summary_prompt(cls, conversation_history: str) -> str:
