@@ -1,0 +1,11 @@
+{
+  "name": "Generate Commit Message",
+  "description": "\u667a\u80fd\u751f\u6210 Git Commit Message",
+  "trigger": "/commit",
+  "parameters": {},
+  "category": "git",
+  "examples": [
+    "/commit"
+  ],
+  "template": "\u6839\u636e\u4ee5\u4e0b Git diff\uff0c\u751f\u6210 Conventional Commits \u683c\u5f0f\u7684 commit message\u3002"
+}

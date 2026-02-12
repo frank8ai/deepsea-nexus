@@ -1,0 +1,14 @@
+#!/bin/bash
+# Git Status Hook - pre-prompt
+# 显示当前Git状态，帮助AI理解工作进度
+
+cd /Users/yizhi/.openclaw/workspace 2>/dev/null || exit 0
+
+echo "=== Git Status ==="
+git status --short 2>/dev/null || echo "Not a git repo"
+
+echo "=== Current Branch ==="
+git branch --show-current 2>/dev/null || echo "Unknown"
+
+echo "=== Recent Commits ==="
+git log --oneline -3 2>/dev/null || echo "No commits"

@@ -1,0 +1,13 @@
+{
+  "name": "Explain Code",
+  "description": "\u8be6\u7ec6\u89e3\u91ca\u4ee3\u7801\u6587\u4ef6",
+  "trigger": "/explain-code",
+  "parameters": {
+    "file_path": "\u4ee3\u7801\u6587\u4ef6\u8def\u5f84"
+  },
+  "category": "development",
+  "examples": [
+    "/explain-code main.py"
+  ],
+  "template": "\u8bf7\u8be6\u7ec6\u89e3\u91ca\u4ee3\u7801\u6587\u4ef6\u3002"
+}
