@@ -5,7 +5,7 @@ vector_store:
   # Local ChromaDB path
   persist_directory: "../memory/.vector_db"
   # Collection name for notes
-  collection_name: "deep_sea_nexus_notes"
+  collection_name: "deepsea_nexus"
   # Distance function: l2, ip, or cosine
   distance_metric: "cosine"
 
@@ -32,7 +32,7 @@ rag:
   # Number of results to retrieve
   top_k: 5
   # Minimum similarity score threshold (0-1)
-  similarity_threshold: 0.5
+  similarity_threshold: 0.0
   # Maximum tokens for retrieved context
   max_context_tokens: 2000
 

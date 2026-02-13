@@ -52,12 +52,19 @@ class SemanticRecall:
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from YAML file."""
         if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__),
-                '..',
-                'config.yaml'
-            )
-        if os.path.exists(config_path):
+            # 尝试多个可能的路径
+            possible_paths = [
+                os.path.join(os.path.dirname(__file__), '..', 'config.yaml'),
+                os.path.join(os.path.dirname(__file__), '..', '..', 'config.yaml'),
+                'config.yaml',
+                os.path.join(os.getcwd(), 'config.yaml'),
+            ]
+            for path in possible_paths:
+                if os.path.exists(path):
+                    config_path = path
+                    break
+        
+        if config_path and os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f)
         return {}
@@ -96,12 +103,16 @@ class SemanticRecall:
         
         if results.get('documents') and results['documents'][0]:
             documents = results['documents'][0]
-            distances = results.get('distances', [[]])[0] if return_scores else []
-            metadatas = results.get('metadatas', [[]])[0]
-            ids = results.get('ids', [[]])[0]
+            distances = results.get('distances')
+            distances = distances[0] if (isinstance(distances, list) and distances) else []
+            metadatas = results.get('metadatas')
+            metadatas = metadatas[0] if (isinstance(metadatas, list) and metadatas) else []
+            ids = results.get('ids')
+            ids = ids[0] if (isinstance(ids, list) and ids) else []
             
             for i, doc_content in enumerate(documents):
-                relevance = 1.0 - distances[i] if distances else 0.0
+                dist = distances[i] if (isinstance(distances, list) and i < len(distances)) else None
+                relevance = 1.0 - dist if dist is not None else 0.0
                 
                 # Filter by threshold
                 if relevance < self.similarity_threshold:

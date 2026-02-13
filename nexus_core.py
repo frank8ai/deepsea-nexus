@@ -16,9 +16,9 @@ from functools import lru_cache
 
 # 添加 Deep-Sea Nexus 路径 (使用 venv-nexus 的 Python)
 SKILL_ROOT = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(os.path.dirname(SKILL_ROOT))
+PROJECT_ROOT = os.path.dirname(SKILL_ROOT)  # 修复：直接使用当前目录
 # V2 源代码在 PROJECT_ROOT/deepsea-nexus/ 目录
-NEXUS_PATH = os.path.join(PROJECT_ROOT, 'deepsea-nexus')
+NEXUS_PATH = SKILL_ROOT  # 修复：直接使用当前目录
 
 # 添加 Deep-Sea Nexus 路径
 sys.path.insert(0, NEXUS_PATH)
