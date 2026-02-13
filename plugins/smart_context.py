@@ -442,6 +442,75 @@ class SmartContextPlugin(NexusPlugin):
         
         return "\n".join(parts)
     
+    # ===================== 功能 3: 压缩前抢救 (NOW.md) =====================
+    
+    def rescue_before_compress(self, conversation: str) -> Dict[str, Any]:
+        """
+        压缩前抢救
+        
+        从对话中提取关键信息并保存到 NOW.md
+        """
+        if not self.config.rescue_enabled:
+            return {"skipped": True, "reason": "rescue_disabled"}
+        
+        result = {"decisions_rescued": 0, "goals_rescued": 0, "questions_rescued": 0, "saved": False}
+        
+        try:
+            from .now_manager import NOWManager
+            now = NOWManager()
+            
+            # 提取 #GOLD 标记
+            if self.config.rescue_gold:
+                gold_matches = re.findall(r'#GOLD[:\s]*(.+?)(?:\n|$)', conversation)
+                for match in gold_matches:
+                    if match.strip() and match.strip() not in now.state.get("decisions", []):
+                        now.state.setdefault("decisions", []).append(match.strip())
+                        result["decisions_rescued"] += 1
+            
+            # 提取关键决策
+            if self.config.rescue_decisions:
+                for keyword in ["决定", "选择", "采用", "使用"]:
+                    if keyword in conversation:
+                        idx = conversation.find(keyword)
+                        if idx != -1:
+                            context = conversation[max(0, idx-30):idx+70].strip()
+                            if context not in now.state.get("next_actions", []):
+                                now.state.setdefault("next_actions", []).append(context)
+                                result["goals_rescued"] += 1
+            
+            # 提取待解决问题
+            if self.config.rescue_next_actions:
+                for match in re.findall(r'[?？](.+?)(?:\n|$)', conversation):
+                    if match.strip() and len(match.strip()) > 5 and match.strip() not in now.state.get("open_questions", []):
+                        now.state.setdefault("open_questions", []).append(match.strip())
+                        result["questions_rescued"] += 1
+            
+            total = result["decisions_rescued"] + result["goals_rescued"] + result["questions_rescued"]
+            if total > 0:
+                now.save()
+                result["saved"] = True
+                
+        except Exception as e:
+            result["error"] = str(e)
+        
+        return result
+    
+    def get_rescue_context(self) -> str:
+        """获取抢救上下文"""
+        try:
+            from .now_manager import NOWManager
+            return NOWManager().format_context()
+        except:
+            return ""
+    
+    def clear_rescue(self):
+        """清空抢救状态"""
+        try:
+            from .now_manager import NOWManager
+            NOWManager().clear()
+        except:
+            pass
+    
     # ===================== 便捷函数 =====================
 
 def store_conversation(conversation_id: str, user_message: str, ai_response: str) -> Dict:
@@ -477,95 +546,3 @@ __all__ = [
     "store_conversation",
     "inject_memory_context",
 ]
-
-# ===================== 功能 3: 压缩前抢救 (NOW.md) =====================
-
-    def rescue_before_compress(self, conversation: str) -> Dict[str, Any]:
-        """
-        压缩前抢救
-        
-        从对话中提取关键信息并保存到 NOW.md
-        
-        Args:
-            conversation: 对话内容
-            
-        Returns:
-            抢救结果
-        """
-        if not self.config.rescue_enabled:
-            return {"skipped": True, "reason": "rescue_disabled"}
-        
-        result = {
-            "decisions_rescued": 0,
-            "goals_rescued": 0,
-            "questions_rescued": 0,
-            "saved": False
-        }
-        
-        try:
-            from .now_manager import NOWManager
-            now = NOWManager()
-            
-            # 提取 #GOLD 标记
-            if self.config.rescue_gold:
-                gold_matches = re.findall(r'#GOLD[:\s]*(.+?)(?:\n|$)', conversation)
-                for match in gold_matches:
-                    if match.strip():
-                        now.state["decisions"] = now.state.get("decisions", [])
-                        if match.strip() not in now.state["decisions"]:
-                            now.state["decisions"].append(match.strip())
-                            result["decisions_rescued"] += 1
-            
-            # 提取关键决策
-            if self.config.rescue_decisions:
-                decision_keywords = ["决定", "选择", "采用", "使用"]
-                for keyword in decision_keywords:
-                    if keyword in conversation:
-                        idx = conversation.find(keyword)
-                        if idx != -1:
-                            context = conversation[max(0, idx-30):idx+70].strip()
-                            now.state["next_actions"] = now.state.get("next_actions", [])
-                            if context not in now.state["next_actions"]:
-                                now.state["next_actions"].append(context)
-                                result["goals_rescued"] += 1
-            
-            # 提取待解决问题
-            if self.config.rescue_next_actions:
-                question_matches = re.findall(r'[?？](.+?)(?:\n|$)', conversation)
-                for match in question_matches:
-                    if match.strip() and len(match.strip()) > 5:
-                        now.state["open_questions"] = now.state.get("open_questions", [])
-                        if match.strip() not in now.state["open_questions"]:
-                            now.state["open_questions"].append(match.strip())
-                            result["questions_rescued"] += 1
-            
-            # 保存
-            total = result["decisions_rescued"] + result["goals_rescued"] + result["questions_rescued"]
-            if total > 0:
-                now.save()
-                result["saved"] = True
-                print(f"✅ 已抢救: 决策{result['decisions_rescued']} / 目标{result['goals_rescued']} / 问题{result['questions_rescued']}")
-            
-        except Exception as e:
-            result["error"] = str(e)
-            print(f"⚠️ 抢救失败: {e}")
-        
-        return result
-    
-    def get_rescue_context(self) -> str:
-        """获取抢救上下文"""
-        try:
-            from .now_manager import NOWManager
-            now = NOWManager()
-            return now.format_context()
-        except Exception:
-            return ""
-    
-    def clear_rescue(self):
-        """清空抢救状态"""
-        try:
-            from .now_manager import NOWManager
-            now = NOWManager()
-            now.clear()
-        except Exception as e:
-            print(f"⚠️ 清空抢救失败: {e}")
