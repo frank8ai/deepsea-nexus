@@ -18,6 +18,7 @@ from .core.plugin_system import get_plugin_registry, PluginRegistry, PluginState
 from .plugins.nexus_core import NexusCorePlugin
 from .plugins.session_manager import SessionManagerPlugin
 from .plugins.flush_manager import FlushManagerPlugin
+from .plugins.smart_context import SmartContextPlugin
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,7 @@ class NexusApplication:
         plugins = [
             (NexusCorePlugin(), NexusCorePlugin().metadata),
             (SessionManagerPlugin(), SessionManagerPlugin().metadata),
+            (SmartContextPlugin(), SmartContextPlugin().metadata),  # 智能上下文
             (FlushManagerPlugin(), FlushManagerPlugin().metadata),
         ]
         
@@ -140,6 +142,7 @@ class NexusApplication:
         auto_load = config.get("plugins", {}).get("auto_load", [
             "nexus_core",
             "session_manager",
+            "smart_context",  # 智能上下文（核心功能）
             "flush_manager",
         ])
         

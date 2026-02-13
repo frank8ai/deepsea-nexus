@@ -90,6 +90,12 @@ from .storage.base import (
 # Context Engine (v3.1) - Smart Context System
 # =============================================================================
 
+from .plugins.smart_context import (
+    SmartContextPlugin,
+    store_conversation,
+    inject_memory_context,
+)
+
 from .plugins.context_engine import (
     ContextEngine,
     get_engine,
@@ -187,7 +193,9 @@ __all__ = [
     "read_compressed",
     
     # Context Engine (v3.1)
-    "ContextEnginePlugin",
+    "SmartContextPlugin",
+    "store_conversation",
+    "inject_memory_context",
     "ContextEngine",
     "get_engine",
     "smart_retrieve",
