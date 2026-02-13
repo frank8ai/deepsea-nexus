@@ -1,8 +1,14 @@
 """
-Deep-Sea Nexus v3.0
+Deep-Sea Nexus v3.1
 AI Agent Long-term Memory System - Hot-Pluggable Architecture
 
-New API (v3.0 - Recommended):
+v3.1 New Features:
+- Structured Summary v2.0 (9 fields for smarter knowledge accumulation)
+- Context-aware AI reasoning
+- Enhanced semantic retrieval with keyword indexing
+- JSON-based structured summaries
+
+New API (v3.1 - Recommended):
     from deepsea_nexus import create_app
     
     app = create_app()
@@ -22,11 +28,11 @@ Features:
 - Hot-pluggable architecture
 - Event-driven communication
 - Unified compression (no code duplication)
-- Swappable storage backends
+- Structured summaries for smarter brain
 - 100% backward compatible
 """
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================
