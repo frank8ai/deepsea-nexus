@@ -1,0 +1,99 @@
+# Routing Table - 任务路由表
+# 常驻层核心组件 - Agent 通过它知道有哪些能力、该加载什么配置
+
+version: 3.2.0
+last_updated: 2026-02-13
+
+# === 核心能力路由 ===
+
+capabilities:
+  # 语义检索
+  semantic_search:
+    description: "理解意图的语义检索，不只是关键词匹配"
+    config_file: "on_demand/semantic_search_rules.md"
+    estimated_tokens: 800
+    cache_ttl: 300
+    hot_load: true  # 常用，保持热加载
+    
+  # 记忆管理
+  memory_management:
+    description: "添加、更新、删除记忆"
+    config_file: "on_demand/memory_management_rules.md"
+    estimated_tokens: 600
+    cache_ttl: 300
+    hot_load: true
+    
+  # 会话管理
+  session_management:
+    description: "Session 生命周期管理 (F1)"
+    config_file: "on_demand/session_management_rules.md"
+    estimated_tokens: 1200
+    cache_ttl: 600
+    hot_load: true
+    
+  # 自动归档
+  flush_management:
+    description: "自动 Flush 与归档 (F5)"
+    config_file: "on_demand/flush_management_rules.md"
+    estimated_tokens: 1000
+    cache_ttl: 600
+    hot_load: false
+    
+  # 智能摘要
+  summary_generation:
+    description: "自动生成对话摘要"
+    config_file: "on_demand/summary_generation_rules.md"
+    estimated_tokens: 800
+    cache_ttl: 300
+    hot_load: true
+    
+  # 批量索引
+  batch_indexing:
+    description: "批量索引 Obsidian 笔记"
+    config_file: "on_demand/batch_indexing_rules.md"
+    estimated_tokens: 900
+    cache_ttl: 60
+    hot_load: false
+
+# === 工具路由 ===
+
+tools:
+  nexus_recall:
+    capability: semantic_search
+    params: [query, limit, filters]
+    
+  nexus_add:
+    capability: memory_management
+    params: [content, title, tags]
+    
+  nexus_init:
+    capability: memory_management
+    params: []
+    
+  session_start:
+    capability: session_management
+    params: [topic]
+    
+  session_close:
+    capability: session_management
+    params: [session_id]
+    
+  daily_flush:
+    capability: flush_management
+    params: []
+
+# === 访问统计 ===
+# 用于优化 hot_load 配置
+
+access_patterns:
+  semantic_search:
+    daily_calls: ~50
+    avg_duration: 50ms
+    
+  session_management:
+    daily_calls: ~20
+    avg_duration: 30ms
+    
+  flush_management:
+    daily_calls: ~1
+    avg_duration: 200ms

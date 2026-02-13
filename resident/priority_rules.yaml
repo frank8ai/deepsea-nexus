@@ -1,0 +1,66 @@
+# Priority Rules - 优先级规则
+# 常驻层 - 影响所有决策的核心规则
+
+version: 3.2.0
+
+# === 记忆优先级标注 ===
+# 用于决定保留时长和检索权重
+
+priorities:
+  P0 - Critical:
+    description: "核心信息（身份、安全、关键配置）"
+    retention: permanent
+    weight: 2.0
+    examples:
+      - API Keys
+      - 安全规则
+      - 身份定义
+    
+  P1 - Important:
+    description: "项目信息（项目、计划、决策）"
+    retention: 90_days
+    weight: 1.5
+    examples:
+      - 项目配置
+      - 重要决策
+      - 架构设计
+    
+  P2 - Temporary:
+    description: "临时信息（调试、临时记录）"
+    retention: 30_days
+    weight: 1.0
+    examples:
+      - 调试日志
+      - 临时脚本
+      - 中间结果
+
+# === 加载优先级 ===
+# 决定按需层的加载顺序
+
+load_priority:
+  high:
+    - semantic_search
+    - memory_management
+    - session_management
+    
+  medium:
+    - summary_generation
+    - flush_management
+    
+  low:
+    - batch_indexing
+
+# === 缓存优先级 ===
+
+cache_priority:
+  hot:      # 常驻内存
+    - semantic_search
+    - memory_management
+    
+  warm:     # LRU 缓存
+    - session_management
+    - summary_generation
+    
+  cold:     # 用时加载
+    - flush_management
+    - batch_indexing
