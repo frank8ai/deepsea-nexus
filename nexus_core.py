@@ -584,6 +584,117 @@ def nexus_add(content: str, title: str, tags: str = "") -> Optional[str]:
     return _get_nexus().add(content, title, tags)
 
 
+def nexus_add_structured_summary(
+    core_output: str,
+    tech_points: List[str] = None,
+    code_pattern: str = "",
+    decision_context: str = "",
+    pitfall_record: str = "",
+    applicable_scene: str = "",
+    search_keywords: List[str] = None,
+    project关联: str = "",
+    confidence: str = "medium",
+    source: str = ""
+) -> Dict[str, Any]:
+    """
+    添加结构化摘要（让第二大脑越来越聪明）
+    
+    Args:
+        core_output: 本次核心产出
+        tech_points: 技术要点列表
+        code_pattern: 代码模式
+        decision_context: 决策上下文
+        pitfall_record: 避坑记录
+        applicable_scene: 适用场景
+        search_keywords: 搜索关键词
+        project关联: 项目关联
+        confidence: 置信度
+        source: 来源标识
+        
+    Returns:
+        Dict with stored doc IDs and summary data
+    """
+    nexus = _get_nexus()
+    
+    # 构建可搜索的文本
+    parts = [
+        core_output,
+        " ".join(tech_points or []),
+        code_pattern,
+        decision_context,
+        pitfall_record,
+        applicable_scene,
+        " ".join(search_keywords or []),
+        project关联,
+    ]
+    searchable_text = " ".join(p for p in parts if p)
+    
+    # 构建标签
+    tags_list = ["type:structured_summary", f"confidence:{confidence}"]
+    if search_keywords:
+        tags_list.extend(search_keywords)
+    if source:
+        tags_list.append(f"source:{source}")
+    tags = ",".join(tags_list)
+    
+    results = {
+        "stored_count": 0,
+        "doc_ids": [],
+        "summary_data": {
+            "core_output": core_output,
+            "tech_points": tech_points,
+            "code_pattern": code_pattern,
+            "decision_context": decision_context,
+            "pitfall_record": pitfall_record,
+            "applicable_scene": applicable_scene,
+            "search_keywords": search_keywords,
+            "project关联": project关联,
+            "confidence": confidence,
+        }
+    }
+    
+    try:
+        # 1. 存储主摘要（可搜索）
+        doc_id1 = nexus.add(
+            content=searchable_text,
+            title=f"结构化摘要 - {core_output[:50]}...",
+            tags=tags
+        )
+        if doc_id1:
+            results["stored_count"] += 1
+            results["doc_ids"].append(doc_id1)
+        
+        # 2. 存储元数据（JSON 格式，保留结构）
+        import json
+        metadata_json = json.dumps(results["summary_data"], ensure_ascii=False)
+        doc_id2 = nexus.add(
+            content=metadata_json,
+            title=f"摘要元数据 - {core_output[:50]}...",
+            tags=f"type:summary_metadata,source:{source}"
+        )
+        if doc_id2:
+            results["stored_count"] += 1
+            results["doc_ids"].append(doc_id2)
+        
+        # 3. 关键词单独索引（提升检索精度）
+        if search_keywords:
+            keyword_text = " ".join(search_keywords)
+            doc_id3 = nexus.add(
+                content=keyword_text,
+                title=f"关键词索引 - {core_output[:30]}...",
+                tags=f"type:keywords,source:{source}"
+            )
+            if doc_id3:
+                results["stored_count"] += 1
+                results["doc_ids"].append(doc_id3)
+        
+    except Exception as e:
+        print(f"存储结构化摘要失败: {e}")
+        results["error"] = str(e)
+    
+    return results
+
+
 def nexus_add_document(content: str, title: str = "", tags: str = "", 
                        note_id: str = None) -> Optional[str]:
     """添加文档（增量索引）"""
