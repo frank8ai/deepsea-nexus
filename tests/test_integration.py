@@ -4,22 +4,31 @@ Integration Tests for Deep-Sea Nexus v3.0
 Test the full system integration and end-to-end functionality.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import asyncio
 import tempfile
-import os
 import json
 import unittest
 from pathlib import Path
 
-from deepsea_nexus import (
-    create_app,
-    nexus_init,
-    nexus_recall,
-    nexus_add,
-    get_session_manager,
-    start_session,
-    close_session,
-)
+try:
+    from deepsea_nexus import (
+        create_app,
+        nexus_init,
+        nexus_recall,
+        nexus_add,
+        get_session_manager,
+        start_session,
+        close_session,
+    )
+except ImportError:
+    # Fallback: import from local modules directly
+    from nexus_core import nexus_init, nexus_recall, nexus_add
+    from session_manager import SessionManager as get_session_manager, start_session, close_session
+    create_app = None
 
 
 class TestEndToEnd(unittest.TestCase):

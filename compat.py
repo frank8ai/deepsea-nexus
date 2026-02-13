@@ -15,9 +15,14 @@ import asyncio
 from typing import List, Dict, Any, Optional
 import logging
 
-from .core.plugin_system import get_plugin_registry, PluginState
-from .core.config_manager import get_config_manager
-from .plugins.nexus_core import RecallResult
+try:
+    from .core.plugin_system import get_plugin_registry, PluginState
+    from .core.config_manager import get_config_manager
+    from .plugins.nexus_core import RecallResult
+except ImportError:
+    from core.plugin_system import get_plugin_registry, PluginState
+    from core.config_manager import get_config_manager
+    from plugins.nexus_core import RecallResult
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +62,12 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
     
     # Register plugins if needed
     if not plugin:
-        from .plugins.nexus_core import NexusCorePlugin
-        from .app import create_app
+        try:
+            from .plugins.nexus_core import NexusCorePlugin
+            from .app import create_app
+        except ImportError:
+            from plugins.nexus_core import NexusCorePlugin
+            from app import create_app
         
         # Create and initialize app
         app = create_app(config_path)
@@ -368,7 +377,10 @@ def nexus_compress_session(session_path: str, compressed_path: str = None) -> st
     Returns:
         str: Compressed file path
     """
-    from .storage.compression import compress_file
+    try:
+        from .storage.compression import compress_file
+    except ImportError:
+        from storage.compression import compress_file
     result = compress_file(session_path, compressed_path)
     return result.data.get("target_path", "") if result.success else ""
 
@@ -386,7 +398,10 @@ def nexus_decompress_session(compressed_path: str, output_path: str = None) -> s
     Returns:
         str: Decompressed file path
     """
-    from .storage.compression import decompress_file
+    try:
+        from .storage.compression import decompress_file
+    except ImportError:
+        from storage.compression import decompress_file
     result = decompress_file(compressed_path, output_path)
     return result.data.get("target_path", "") if result.success else ""
 

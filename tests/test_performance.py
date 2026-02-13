@@ -4,20 +4,28 @@ Performance Benchmarks for Deep-Sea Nexus v3.0
 Benchmark the new architecture performance vs. expected metrics.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 import asyncio
 import tempfile
-import os
 import json
 from typing import List, Tuple
 import unittest
 from dataclasses import dataclass
 
-from deepsea_nexus import (
-    create_app,
-    nexus_init,
-    nexus_recall,
-    nexus_add,
+try:
+    from deepsea_nexus import (
+        create_app,
+        nexus_init,
+        nexus_recall,
+        nexus_add,
+    )
+except ImportError:
+    from nexus_core import nexus_init, nexus_recall, nexus_add
+    create_app = None
     CompressionManager,
 )
 
