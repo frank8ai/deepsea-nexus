@@ -36,3 +36,7 @@ env/
 
 # Memory data (large, not for git)
 memory/
+
+# ChromaDB vector database
+chroma_db/
+*.sqlite3

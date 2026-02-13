@@ -36,7 +36,12 @@ except ImportError as e:
     IMPORT_ERROR = str(e)
 
 # ===================== 统一触发词检测（已移到 utils/triggers.py） =====================
-from .utils.triggers import detect_trigger, extract_keywords, smart_parse
+try:
+    # Try relative import (when used as package)
+    from .utils.triggers import detect_trigger, extract_keywords, smart_parse
+except ImportError:
+    # Fall back to absolute import (when run directly)
+    from utils.triggers import detect_trigger, extract_keywords, smart_parse
 
 
 # ===================== 自动预热 =====================
