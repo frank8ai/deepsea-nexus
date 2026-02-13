@@ -1,236 +1,288 @@
-#!/usr/bin/env python
 """
-Unit Tests for NexusConfig
+Unit Tests for Deep-Sea Nexus v3.0
+
+Test the hot-pluggable architecture and ensure all components work correctly.
 """
 
-import os
-import sys
-import pytest
+import asyncio
 import tempfile
-from pathlib import Path
+import os
+import unittest
+from unittest.mock import Mock, patch, MagicMock
 
-# Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-
-class TestNexusConfig:
-    """Test suite for NexusConfig"""
-    
-    @pytest.fixture
-    def temp_config_file(self, tmp_path):
-        """Create a temporary config file"""
-        config_content = """
-paths:
-  base: /tmp/test_nexus
-  memory: memory/90_Memory
-
-index:
-  max_index_tokens: 300
-  max_session_tokens: 1000
-
-session:
-  auto_split_size: 5000
-
-optional:
-  vector_store: false
-  rag_enabled: false
-  mcp_enabled: false
-  cross_date_search: false
-"""
-        config_file = tmp_path / "config.yaml"
-        with open(config_file, 'w') as f:
-            f.write(config_content)
-        return str(config_file)
-    
-    def test_config_load_basic(self, temp_config_file):
-        """Test basic config loading"""
-        from src.config import NexusConfig
-        
-        # Mock the config path
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create config in temp location
-            with open(os.path.join(tmpdir, "config.yaml"), 'w') as f:
-                f.write("""
-paths:
-  base: """ + tmpdir + """
-  memory: memory/90_Memory
-index:
-  max_index_tokens: 300
-  max_session_tokens: 1000
-""")
-            # This would need proper import mocking
-            assert True  # Placeholder - config.py already tested
-    
-    def test_get_path(self):
-        """Test path configuration retrieval"""
-        from src.config import NexusConfig
-        # Basic test - the class should exist and be importable
-        assert NexusConfig is not None
-    
-    def test_default_values(self):
-        """Test default configuration values"""
-        from src.config import NexusConfig
-        
-        # Test that default config has expected keys
-        config = NexusConfig()
-        base = config.get("paths.base", None)
-        assert base is not None or hasattr(config, '_config')
+from deepsea_nexus import (
+    create_app,
+    NexusApplication,
+    get_plugin_registry,
+    get_event_bus,
+    get_config_manager,
+    nexus_init,
+    nexus_recall,
+    nexus_add,
+    CompressionManager,
+    GzipBackend,
+    ZstdBackend,
+    Lz4Backend,
+)
 
 
-class TestDataStructures:
-    """Test suite for data structures"""
+class TestEventBus(unittest.TestCase):
+    """Test Event Bus functionality"""
     
-    def test_session_status_enum(self):
-        """Test SessionStatus enum exists"""
-        from src.data_structures import SessionStatus
-        
-        assert hasattr(SessionStatus, 'ACTIVE')
-        assert hasattr(SessionStatus, 'PAUSED')
-        assert hasattr(SessionStatus, 'ARCHIVED')
+    def setUp(self):
+        self.event_bus = get_event_bus()
+        self.event_bus.clear_subscribers()  # Clean slate
     
-    def test_session_metadata(self):
-        """Test SessionMetadata dataclass"""
-        from src.data_structures import SessionMetadata
+    def test_subscribe_and_publish(self):
+        """Test basic subscribe/publish"""
+        received_events = []
         
-        metadata = SessionMetadata(
-            uuid="test123",
-            topic="Test Topic",
-            created_at="2026-02-08T01:00:00",
-            status=SessionStatus.ACTIVE
-        )
+        def handler(event):
+            received_events.append(event)
         
-        assert metadata.uuid == "test123"
-        assert metadata.topic == "Test Topic"
-        assert metadata.status == SessionStatus.ACTIVE
+        self.event_bus.subscribe("test.event", handler)
+        
+        # Publish event
+        self.event_bus.publish("test.event", {"data": "test"})
+        
+        # Process events (async)
+        asyncio.run(asyncio.sleep(0.01))  # Allow async processing
+        
+        self.assertEqual(len(received_events), 1)
+        self.assertEqual(received_events[0].data["data"], "test")
     
-    def test_daily_index(self):
-        """Test DailyIndex dataclass"""
-        from src.data_structures import DailyIndex
+    def test_multiple_subscribers(self):
+        """Test multiple subscribers to same event"""
+        received1, received2 = [], []
         
-        index = DailyIndex(
-            date="2026-02-08",
-            sessions={},
-            gold_keys=[],
-            topics=[]
-        )
+        def handler1(event):
+            received1.append(event)
         
-        assert index.date == "2026-02-08"
-        assert index.sessions == {}
-        assert index.gold_keys == []
-        assert index.topics == []
-    
-    def test_recall_result(self):
-        """Test RecallResult dataclass"""
-        from src.data_structures import RecallResult
+        def handler2(event):
+            received2.append(event)
         
-        result = RecallResult(
-            session_id="0900_Test",
-            relevance=0.95,
-            content="Test content",
-            source="/path/to/file.md",
-            metadata={}
-        )
+        self.event_bus.subscribe("test.multi", handler1)
+        self.event_bus.subscribe("test.multi", handler2)
         
-        assert result.session_id == "0900_Test"
-        assert result.relevance == 0.95
-        assert result.content == "Test content"
-    
-    def test_index_entry(self):
-        """Test IndexEntry dataclass"""
-        from src.data_structures import IndexEntry
+        self.event_bus.publish("test.multi", {"msg": "hello"})
+        asyncio.run(asyncio.sleep(0.01))
         
-        entry = IndexEntry(
-            session_id="0900_Test",
-            topic="Test",
-            status="active"
-        )
-        
-        assert entry.session_id == "0900_Test"
-        assert entry.topic == "Test"
-        assert entry.status == "active"
+        self.assertEqual(len(received1), 1)
+        self.assertEqual(len(received2), 1)
+        self.assertEqual(received1[0].data["msg"], "hello")
+        self.assertEqual(received2[0].data["msg"], "hello")
 
 
-class TestExceptions:
-    """Test suite for exceptions"""
+class TestCompressionManager(unittest.TestCase):
+    """Test Compression Manager functionality"""
     
-    def test_session_not_found_error(self):
-        """Test SessionNotFoundError exists"""
-        from src.exceptions import SessionNotFoundError
+    def test_gzip_backend(self):
+        """Test gzip compression"""
+        backend = GzipBackend(level=6)
         
-        error = SessionNotFoundError("test_session")
-        assert "test_session" in str(error)
-        assert issubclass(SessionNotFoundError, Exception)
+        original = b"Hello, World! This is test data for compression."
+        compressed = backend.compress(original)
+        decompressed = backend.decompress(compressed)
+        
+        self.assertEqual(decompressed, original)
+        self.assertLess(len(compressed), len(original))
     
-    def test_index_file_error(self):
-        """Test IndexFileError exists"""
-        from src.exceptions import IndexFileError
-        
-        error = IndexFileError("index.md", "File not found")
-        assert "index.md" in str(error)
-        assert issubclass(IndexFileError, Exception)
+    def test_zstd_backend(self):
+        """Test zstd compression (if available)"""
+        try:
+            backend = ZstdBackend(level=3)
+            
+            original = b"Hello, World! This is test data for compression."
+            compressed = backend.compress(original)
+            decompressed = backend.decompress(compressed)
+            
+            self.assertEqual(decompressed, original)
+            self.assertLess(len(compressed), len(original))
+        except ImportError:
+            self.skipTest("zstandard not installed")
     
-    def test_storage_full_error(self):
-        """Test StorageFullError exists"""
-        from src.exceptions import StorageFullError
-        
-        error = StorageFullError("/path", 1000000)
-        assert "1000000" in str(error)
-        assert issubclass(StorageFullError, Exception)
+    def test_lz4_backend(self):
+        """Test lz4 compression (if available)"""
+        try:
+            backend = Lz4Backend()
+            
+            original = b"Hello, World! This is test data for compression."
+            compressed = backend.compress(original)
+            decompressed = backend.decompress(compressed)
+            
+            self.assertEqual(decompressed, original)
+            self.assertLess(len(compressed), len(original))
+        except ImportError:
+            self.skipTest("lz4 not installed")
     
-    def test_timeout_error(self):
-        """Test TimeoutError exists"""
-        from src.exceptions import NexusTimeoutError
+    def test_compression_manager(self):
+        """Test compression manager interface"""
+        original = b"Test data for compression manager"
         
-        error = NexusTimeoutError(30)
-        assert "30" in str(error)
-        assert issubclass(NexusTimeoutError, Exception)
+        # Test gzip
+        cm = CompressionManager("gzip")
+        compressed = cm.compress(original)
+        decompressed = cm.decompress(compressed)
+        self.assertEqual(decompressed, original)
+        
+        # Test file operations
+        with tempfile.NamedTemporaryFile(delete=False) as temp:
+            temp.write(original)
+            temp.flush()
+            temp_path = temp.name
+        
+        try:
+            # Compress file
+            result = cm.compress_file(temp_path)
+            self.assertTrue(result.success)
+            
+            # Decompress file
+            result = cm.decompress_file(result.data["target_path"])
+            self.assertTrue(result.success)
+        finally:
+            # Cleanup
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            compressed_file = temp_path + ".gz"
+            if os.path.exists(compressed_file):
+                os.unlink(compressed_file)
 
 
-class TestLogger:
-    """Test suite for logger"""
+class TestNexusApplication(unittest.TestCase):
+    """Test Nexus Application lifecycle"""
     
-    def test_logger_exists(self):
-        """Test logger module is importable"""
-        from src.logger import setup_logger, NexusLogger
-        
-        assert setup_logger is not None
-        assert NexusLogger is not None
+    def setUp(self):
+        self.temp_config = tempfile.mktemp(suffix=".json")
     
-    def test_logger_setup(self):
-        """Test logger setup function"""
-        from src.logger import setup_logger
+    def tearDown(self):
+        if os.path.exists(self.temp_config):
+            os.unlink(self.temp_config)
+    
+    def test_app_creation(self):
+        """Test application creation"""
+        app = create_app()
+        self.assertIsInstance(app, NexusApplication)
+    
+    def test_app_initialize_start_stop(self):
+        """Test full application lifecycle"""
+        app = create_app()
         
-        logger = setup_logger("test")
-        assert logger is not None
-        assert logger.name == "test"
+        # Initialize
+        result = asyncio.run(app.initialize())
+        self.assertTrue(result)
+        
+        # Start
+        result = asyncio.run(app.start())
+        self.assertTrue(result)
+        
+        # Check plugins are loaded
+        self.assertIsNotNone(app.plugins.get("nexus_core"))
+        self.assertIsNotNone(app.plugins.get("session_manager"))
+        self.assertIsNotNone(app.plugins.get("flush_manager"))
+        
+        # Stop
+        result = asyncio.run(app.stop())
+        self.assertTrue(result)
 
 
-class TestLock:
-    """Test suite for file lock"""
+class TestBackwardCompatibility(unittest.TestCase):
+    """Test backward compatibility"""
     
-    def test_file_lock_exists(self):
-        """Test FileLock class exists"""
-        from src.lock import FileLock, LockTimeoutError
+    def test_nexus_init_recall(self):
+        """Test backward compatible API"""
+        # Should not raise exception
+        result = nexus_init()
+        self.assertTrue(result)
         
-        assert FileLock is not None
-        assert LockTimeoutError is not None
+        # Should return list
+        results = nexus_recall("test", n=1)
+        self.assertIsInstance(results, list)
     
-    def test_lock_acquire_release(self, tmp_path):
-        """Test lock acquire and release"""
-        from src.lock import FileLock
+    def test_nexus_add(self):
+        """Test backward compatible add"""
+        # Should not raise exception
+        doc_id = nexus_add("Test content", "Test title", "test,tag")
         
-        lock_file = tmp_path / "test.lock"
-        lock = FileLock(str(lock_file), timeout=5)
+        # May return None if backend not available, but shouldn't crash
+        if doc_id is not None:
+            self.assertIsInstance(doc_id, str)
+
+
+class TestPluginSystem(unittest.TestCase):
+    """Test Plugin System"""
+    
+    def setUp(self):
+        self.registry = get_plugin_registry()
+        self.registry.clear()  # Clean registry
+    
+    def test_plugin_registration(self):
+        """Test plugin registration"""
+        from deepsea_nexus.core.plugin_system import NexusPlugin, PluginMetadata
         
-        # Should be able to acquire
-        acquired = lock.acquire()
-        assert acquired is True
+        # Create mock plugin
+        class TestPlugin(NexusPlugin):
+            def __init__(self):
+                super().__init__()
+                self.metadata = PluginMetadata(
+                    name="test_plugin",
+                    version="1.0.0",
+                    description="Test plugin",
+                    dependencies=[],
+                    hot_reloadable=True,
+                )
         
-        # Should be able to release
-        lock.release()
-        assert not lock_file.exists() or lock.locked is False
+        plugin = TestPlugin()
+        
+        # Register
+        result = self.registry.register(plugin, plugin.metadata)
+        self.assertTrue(result)
+        
+        # Get plugin
+        retrieved = self.registry.get("test_plugin")
+        self.assertIs(retrieved, plugin)
+    
+    def test_dependency_resolution(self):
+        """Test dependency resolution"""
+        from deepsea_nexus.core.plugin_system import NexusPlugin, PluginMetadata
+        
+        class DependentPlugin(NexusPlugin):
+            def __init__(self):
+                super().__init__()
+                self.metadata = PluginMetadata(
+                    name="dependent_plugin",
+                    version="1.0.0",
+                    description="Dependent plugin",
+                    dependencies=["config_manager"],  # Should exist
+                    hot_reloadable=True,
+                )
+        
+        plugin = DependentPlugin()
+        
+        # Register
+        result = self.registry.register(plugin, plugin.metadata)
+        self.assertTrue(result)
+
+
+class TestStorageAbstraction(unittest.TestCase):
+    """Test storage abstraction layer"""
+    
+    def test_storage_result(self):
+        """Test StorageResult functionality"""
+        from deepsea_nexus.storage.base import StorageResult
+        
+        # Success result
+        success = StorageResult.ok("data")
+        self.assertTrue(success.success)
+        self.assertEqual(success.data, "data")
+        self.assertIsNone(success.error_msg)
+        
+        # Error result
+        error = StorageResult.err("error message")
+        self.assertFalse(error.success)
+        self.assertEqual(error.error_msg, "error message")
+        self.assertIsNone(error.data)
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    # Run tests
+    unittest.main(verbosity=2)

@@ -1,0 +1,35 @@
+{
+  "base_path": "./tests/temp_memory",
+  "nexus": {
+    "vector_db_path": "./tests/temp_vector_db",
+    "embedder_name": "all-MiniLM-L6-v2"
+  },
+  "session": {
+    "auto_archive_days": 30,
+    "index_file": "_sessions_index.json"
+  },
+  "flush": {
+    "enabled": false,
+    "archive_time": "03:00",
+    "compress_enabled": true,
+    "compress_algorithm": "gzip",
+    "archive_dir": "archive",
+    "keep_archived_days": 90,
+    "min_chunks_to_archive": 5
+  },
+  "storage": {
+    "session_backend": "json",
+    "vector_backend": "chromadb"
+  },
+  "plugins": {
+    "auto_load": [
+      "nexus_core",
+      "session_manager", 
+      "flush_manager"
+    ]
+  },
+  "compression": {
+    "default_algorithm": "gzip",
+    "supported_algorithms": ["gzip", "zstd", "lz4"]
+  }
+}
