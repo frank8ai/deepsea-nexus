@@ -41,9 +41,9 @@ class ContextCompressionConfig:
     - 根据对话轮数压缩
     """
     # 对话轮数规则
-    full_rounds: int = 8          # 完整保留最近 N 轮
-    summary_rounds: int = 30      # 超过 N 轮只保留摘要
-    compress_after_rounds: int = 50  # 超过 N 轮压缩/归档
+    full_rounds: int = 5          # 完整保留最近 N 轮 (推荐 3-8)
+    summary_rounds: int = 15      # 超过 N 轮只保留摘要 (推荐 10-20)
+    compress_after_rounds: int = 25  # 超过 N 轮压缩 (推荐 20-30)
     
     # 摘要存储规则
     store_summary_enabled: bool = True
