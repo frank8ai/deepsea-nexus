@@ -87,6 +87,18 @@ from .storage.base import (
 )
 
 # =============================================================================
+# Context Engine (v3.1) - Smart Context System
+# =============================================================================
+
+from .plugins.context_engine import (
+    ContextEnginePlugin,
+    StructuredSummary,
+    SummaryParser,
+    parse_summary,
+    create_summary_prompt,
+)
+
+# =============================================================================
 # Backward Compatible API (v2.x)
 # =============================================================================
 
@@ -167,6 +179,13 @@ __all__ = [
     "compress_file",
     "decompress_file",
     "read_compressed",
+    
+    # Context Engine (v3.1)
+    "ContextEnginePlugin",
+    "StructuredSummary",
+    "SummaryParser",
+    "parse_summary",
+    "create_summary_prompt",
     
     # Backward Compatible API (v2.x)
     "nexus_init",
