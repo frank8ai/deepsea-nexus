@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 # 添加路径
-SKILL_ROOT = Path(__file__).parent
+SKILL_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(SKILL_ROOT))
 
 from auto_summary import SummaryParser, StructuredSummary, HybridStorage
