@@ -48,46 +48,8 @@ def _socket_search(query: str, n: int = 5) -> Optional[Dict]:
         return None
 
 
-# ===================== 触发词检测 =====================
-TRIGGER_PATTERNS = [
-    (r'还记得(.+?)[吗?？]', "还记得...吗"),
-    (r'上次.*提到(.+)', "上次提到"),
-    (r'之前.*说过(.+)', "之前说过"),
-    (r'之前.*讨论(.+)', "之前讨论"),
-    (r'之前.*决定(.+)', "之前决定"),
-    (r'前面.*内容(.+)', "前面内容"),
-    (r'之前.*项目(.+)', "之前项目"),
-    (r'上次.*对话(.+)', "上次对话"),
-    (r'之前.*聊天(.+)', "之前聊天"),
-]
-
-STOP_WORDS = {'的', '了', '是', '在', '我', '你', '他', '她', '它', '这', '那', '和', '与', '或', '就', '都', '也', '会', '可以', '什么', '怎么', '如何'}
-
-
-def detect_trigger(user_input: str) -> Optional[Dict[str, Any]]:
-    """检测触发词"""
-    import re
-    for pattern, name in TRIGGER_PATTERNS:
-        match = re.search(pattern, user_input, re.IGNORECASE)
-        if match:
-            query = user_input[match.end():].strip().rstrip("吗?？")
-            if not query:
-                query = user_input[:match.start()].strip()
-            return {
-                "triggered": True,
-                "pattern": name,
-                "query": query or user_input,
-                "original": user_input
-            }
-    return None
-
-
-def extract_keywords(text: str, max_kw: int = 5) -> List[str]:
-    """提取关键词"""
-    import re
-    words = re.findall(r'\b\w+\b', text.lower())
-    keywords = [w for w in words if w not in STOP_WORDS and len(w) > 2]
-    return list(dict.fromkeys(keywords))[:max_kw]
+# ===================== 统一触发词检测（已移到 utils/triggers.py） =====================
+from .utils.triggers import detect_trigger, extract_keywords, smart_parse
 
 
 # ===================== 智能搜索 =====================
