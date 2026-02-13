@@ -1,23 +1,115 @@
 """
-智能摘要模块 - 自动生成并存储对话摘要
+智能摘要模块 v2.0 - 让第二大脑越来越聪明
 
 功能：
-- 从 LLM 回复中解析摘要
+- 从 LLM 回复中解析结构化摘要
 - 混合存储摘要 + 原文到向量库
 - 支持回溯到原始对话
+- 结构化字段让检索更精准
+
+核心设计理念：
+- 每次对话都是知识沉淀的机会
+- 摘要要有长期复用价值
+- 避免"正确的废话"，只保留"未来能用到的"
 """
 
+import json
 import re
 from typing import Optional, Dict, Any, List
+from dataclasses import dataclass, asdict
+
+
+@dataclass
+class StructuredSummary:
+    """
+    结构化摘要数据类
+    
+    设计目标：让未来的检索更精准，让第二大脑越来越聪明
+    """
+    # 核心产出 - 必须填写
+    core_output: str = ""           # 本次核心产出：一句话说明解决了什么问题
+    
+    # 技术要点 - 结构化知识
+    tech_points: List[str] = None   # 技术要点：关键点列表
+    
+    # 代码模式 - 可复用资产
+    code_pattern: str = ""          # 代码模式：提取的可复用代码
+    
+    # 决策上下文 - 理解"为什么"
+    decision_context: str = ""       # 决策上下文：为什么选择这个方案
+    
+    # 避坑记录 - 避免重复犯错
+    pitfall_record: str = ""         # 避坑记录：应避免的错误/弯路
+    
+    # 适用场景 - 避免滥用
+    applicable_scene: str = ""       # 适用场景：这个方案适用的场景
+    
+    # 搜索关键词 - 精准检索
+    search_keywords: List[str] = None # 搜索关键词：标签列表
+    
+    # 项目关联 - 项目连续性
+    project关联: str = ""            # 项目关联：所属项目（可选）
+    
+    # 置信度 - 质量自检
+    confidence: str = "medium"       # 置信度：high/medium/low
+    
+    def __post_init__(self):
+        if self.tech_points is None:
+            self.tech_points = []
+        if self.search_keywords is None:
+            self.search_keywords = []
+    
+    def to_dict(self) -> Dict:
+        """转换为字典"""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'StructuredSummary':
+        """从字典创建"""
+        return cls(
+            core_output=data.get("本次核心产出", ""),
+            tech_points=data.get("技术要点", []),
+            code_pattern=data.get("代码模式", ""),
+            decision_context=data.get("决策上下文", ""),
+            pitfall_record=data.get("避坑记录", ""),
+            applicable_scene=data.get("适用场景", ""),
+            search_keywords=data.get("搜索关键词", []),
+            project关联=data.get("项目关联", ""),
+            confidence=data.get("置信度", "medium")
+        )
+    
+    def to_searchable_text(self) -> str:
+        """转换为可搜索的文本"""
+        parts = [
+            self.core_output,
+            " ".join(self.tech_points),
+            self.code_pattern,
+            self.decision_context,
+            self.pitfall_record,
+            self.applicable_scene,
+            " ".join(self.search_keywords),
+            self.project关联,
+        ]
+        return " ".join(p for p in parts if p)
+    
+    def to_tags(self) -> str:
+        """转换为标签字符串"""
+        return ",".join(self.search_keywords)
 
 
 class SummaryParser:
-    """摘要解析器"""
+    """摘要解析器 v2.0"""
     
-    # 分隔符模式 - 支持多种格式
-    SUMMARY_PATTERNS = [
-        re.compile(r'## 📋 总结[^\n]*\n([\s\S]*?)(?=\n\n|$)', re.DOTALL),  # ## 📋 总结 格式
-        re.compile(r'---SUMMARY---\s*(.+?)\s*---END---', re.DOTALL | re.IGNORECASE),  # 旧格式
+    # 新的结构化 JSON 格式
+    JSON_PATTERN = re.compile(
+        r'```json\s*\n([\s\S]*?)\n```',
+        re.DOTALL
+    )
+    
+    # 旧的简单格式（向后兼容）
+    LEGACY_PATTERNS = [
+        re.compile(r'## 📋 总结[^\n]*\n([\s\S]*?)(?=\n\n|$)', re.DOTALL),
+        re.compile(r'---SUMMARY---\s*(.+?)\s*---END---', re.DOTALL | re.IGNORECASE),
     ]
     
     @classmethod
@@ -35,39 +127,80 @@ class SummaryParser:
         """
         summary = None
         
-        for pattern in cls.SUMMARY_PATTERNS:
-            match = pattern.search(response)
-            if match:
-                summary = match.group(1).strip()
-                # 移除摘要部分，得到原文
-                response = pattern.sub('', response).strip()
-                break
+        # 优先尝试解析 JSON 格式
+        json_match = cls.JSON_PATTERN.search(response)
+        if json_match:
+            json_str = json_match.group(1).strip()
+            try:
+                data = json.loads(json_str)
+                # 转换为结构化摘要
+                summary = StructuredSummary.from_dict(data)
+                # 移除 JSON 块，得到原文
+                response = cls.JSON_PATTERN.sub('', response).strip()
+            except (json.JSONDecodeError, AttributeError) as e:
+                print(f"JSON 解析失败: {e}，尝试旧格式")
+        
+        # 如果没有 JSON，尝试旧格式（向后兼容）
+        if summary is None:
+            for pattern in cls.LEGACY_PATTERNS:
+                match = pattern.search(response)
+                if match:
+                    summary_text = match.group(1).strip()
+                    # 转换为简单的结构化摘要
+                    summary = StructuredSummary(
+                        core_output=summary_text,
+                        confidence="low"  # 旧格式无法自评
+                    )
+                    # 移除摘要部分，得到原文
+                    response = pattern.sub('', response).strip()
+                    break
         
         return response, summary
     
     @classmethod
-    def create_summary_prompt(cls, conversation_history: str) -> str:
+    def create_structured_summary_prompt(cls, conversation_history: str) -> str:
         """
-        生成摘要提示词
+        生成结构化摘要提示词
         
         Args:
             conversation_history: 对话历史
             
         Returns:
-            包含摘要要求的完整提示词
+            包含结构化摘要要求的完整提示词
         """
         return f"""
 {conversation_history}
 
 ---
-SUMMARY---
-[用1-2句话总结本次对话核心要点]
----END---
+
+## 🧠 知识沉淀（每次回复必须）
+
+请用 JSON 格式总结本次对话要点，帮助未来的你快速理解这段对话的价值：
+
+```json
+{{
+  "本次核心产出": "一句话说明这次解决了什么问题",
+  "技术要点": ["关键点1", "关键点2"],
+  "代码模式": "提取的可复用代码片段（如果有）",
+  "决策上下文": "为什么选择这个方案",
+  "避坑记录": "应避免的错误/弯路",
+  "适用场景": "这个方案适用的场景",
+  "搜索关键词": ["标签1", "标签2"],
+  "项目关联": "所属项目（可选）",
+  "置信度": "high/medium/low"
+}}
+```
+
+**填写指南**：
+- 每个字段都要思考后填写
+- 避免泛泛而谈，要具体可操作
+- 重点突出"未来能用到"的信息
+- 置信度：如果对摘要质量有信心选 high
 """
 
 
 class HybridStorage:
-    """混合存储管理器"""
+    """混合存储管理器 v2.0"""
     
     def __init__(self, vector_store):
         """
@@ -97,9 +230,11 @@ class HybridStorage:
         
         results = {
             "conversation_id": conversation_id,
-            "reply": reply,
+            "reply": reply[:200] if reply else "",  # 截断显示
             "has_summary": summary is not None,
-            "stored_count": 0
+            "summary_type": type(summary).__name__ if summary else None,
+            "stored_count": 0,
+            "summary_data": None
         }
         
         # 2. 存储原文
@@ -113,17 +248,50 @@ class HybridStorage:
         except Exception as e:
             print(f"存储原文失败: {e}")
         
-        # 3. 如果有摘要，也存储摘要
+        # 3. 如果有结构化摘要，存储结构化数据
         if summary:
-            try:
+            if isinstance(summary, StructuredSummary):
+                # 结构化摘要 - 存储所有字段
+                summary_text = summary.to_searchable_text()
+                summary_tags = f"type:structured_summary,source:{conversation_id},confidence:{summary.confidence}"
+                
+                # 主存储：合并所有字段为可搜索文本
                 self.vector_store.add(
-                    content=summary,
+                    content=summary_text,
+                    title=f"对话 {conversation_id} - 结构化摘要",
+                    tags=summary_tags
+                )
+                results["stored_count"] += 1
+                
+                # 元数据存储：保留原始结构
+                self.vector_store.add(
+                    content=json.dumps(summary.to_dict(), ensure_ascii=False),
+                    title=f"对话 {conversation_id} - 摘要元数据",
+                    tags=f"type:summary_metadata,source:{conversation_id}"
+                )
+                results["stored_count"] += 1
+                
+                # 关键词单独索引（提升检索精度）
+                if summary.search_keywords:
+                    keyword_text = " ".join(summary.search_keywords)
+                    self.vector_store.add(
+                        content=keyword_text,
+                        title=f"对话 {conversation_id} - 关键词索引",
+                        tags=f"type:keywords,source:{conversation_id}"
+                    )
+                    results["stored_count"] += 1
+                
+                results["summary_data"] = summary.to_dict()
+                
+            else:
+                # 旧格式摘要（向后兼容）
+                self.vector_store.add(
+                    content=summary.core_output,
                     title=f"对话 {conversation_id} - 摘要",
                     tags=f"type:summary,source:{conversation_id}"
                 )
                 results["stored_count"] += 1
-            except Exception as e:
-                print(f"存储摘要失败: {e}")
+                results["summary_data"] = {"core_output": summary.core_output}
         
         return results
     
@@ -142,26 +310,52 @@ class HybridStorage:
         
         # 添加类型标注
         for item in results:
-            item["display_type"] = "摘要" if "type:summary" in (item.get("metadata", {}).get("tags", "") or "") else "原文"
+            tags = item.get("metadata", {}).get("tags", "") or ""
+            if "type:structured_summary" in tags:
+                item["display_type"] = "结构化摘要"
+            elif "type:summary_metadata" in tags:
+                item["display_type"] = "摘要元数据"
+            elif "type:keywords" in tags:
+                item["display_type"] = "关键词"
+            elif "type:summary" in tags:
+                item["display_type"] = "摘要"
+            else:
+                item["display_type"] = "原文"
         
         return results
 
 
 def create_summary_system_prompt() -> str:
     """
-    创建系统提示词模板
+    创建系统提示词模板 v2.0
     
     Returns:
-        包含摘要生成指令的系统提示词
+        包含结构化摘要生成指令的系统提示词
     """
     return """
-你是一个 AI 助手。请在回复结束时，按以下格式添加摘要：
+你是一个 AI 助手。请在回复结束时，按以下格式添加知识沉淀：
 
 [你的完整回复内容]
 
----SUMMARY---
-[1-2句话总结本次对话的核心要点]
----END---
+```json
+{
+  "本次核心产出": "一句话说明这次解决了什么问题",
+  "技术要点": ["关键点1", "关键点2"],
+  "代码模式": "提取的可复用代码片段（如果有）",
+  "决策上下文": "为什么选择这个方案",
+  "避坑记录": "应避免的错误/弯路",
+  "适用场景": "这个方案适用的场景",
+  "搜索关键词": ["标签1", "标签2"],
+  "项目关联": "所属项目（可选）",
+  "置信度": "high/medium/low"
+}
+```
+
+**填写指南**：
+- 每个字段都要思考后填写
+- 避免泛泛而谈，要具体可操作
+- 重点突出"未来能用到"的信息
+- 置信度：如果对摘要质量有信心选 high
 
 要求：
 - 摘要要简洁明了
@@ -174,16 +368,51 @@ if __name__ == "__main__":
     # 测试
     parser = SummaryParser()
     
-    test_response = """
+    # 测试新格式
+    test_response_v2 = """
 Python 列表推导式是一种简洁的创建列表方式。
 
 例如：[x for x in range(10) if x % 2 == 0]
+
+```json
+{
+  "本次核心产出": "学习 Python 列表推导式的基本语法和用法",
+  "技术要点": ["列表推导式语法", "条件过滤", "嵌套推导"],
+  "代码模式": "[x for x in iterable if condition]",
+  "决策上下文": "选择列表推导式是因为代码更简洁，运行效率相当",
+  "避坑记录": "复杂条件应拆分为函数，否则可读性差",
+  "适用场景": "数据过滤、转换、简单映射场景",
+  "搜索关键词": ["python", "list-comprehension", "语法", "列表"],
+  "项目关联": "Python 学习",
+  "置信度": "high"
+}
+```
+"""
+    
+    reply, summary = parser.parse(test_response_v2)
+    print("=" * 60)
+    print("Reply:", reply[:100], "...")
+    print("=" * 60)
+    if isinstance(summary, StructuredSummary):
+        print("✅ 结构化摘要:")
+        print(f"  核心产出: {summary.core_output}")
+        print(f"  技术要点: {summary.tech_points}")
+        print(f"  代码模式: {summary.code_pattern}")
+        print(f"  置信度: {summary.confidence}")
+    else:
+        print("Summary:", summary)
+    
+    # 测试旧格式兼容
+    print("\n" + "=" * 60)
+    print("测试旧格式兼容:")
+    test_response_old = """
+这是旧格式的测试回复。
 
 ---SUMMARY---
 学习 Python 列表推导式的基本语法和用法
 ---END---
 """
     
-    reply, summary = parser.parse(test_response)
-    print("Reply:", reply)
-    print("Summary:", summary)
+    reply2, summary2 = parser.parse(test_response_old)
+    print("Reply:", reply2)
+    print("Summary:", summary2)
