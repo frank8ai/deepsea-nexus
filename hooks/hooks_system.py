@@ -21,7 +21,7 @@ class HooksSystem:
     """Nexus Hooks 管理系统"""
     
     def __init__(self, base_path: str = None):
-        self.base_path = base_path or Path(__file__).parent / "hooks"
+        self.base_path = base_path or Path(__file__).parent
         self.hooks = {
             "pre-prompt": self.base_path / "pre-prompt",
             "post-response": self.base_path / "post-response",
