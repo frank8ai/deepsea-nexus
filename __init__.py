@@ -91,6 +91,12 @@ from .storage.base import (
 # =============================================================================
 
 from .plugins.context_engine import (
+    ContextEngine,
+    get_engine,
+    smart_retrieve,
+    inject_context,
+    detect_trigger,
+    store_summary,
     ContextEnginePlugin,
     StructuredSummary,
     SummaryParser,
@@ -182,6 +188,18 @@ __all__ = [
     
     # Context Engine (v3.1)
     "ContextEnginePlugin",
+    "ContextEngine",
+    "get_engine",
+    "smart_retrieve",
+    "inject_context",
+    "detect_trigger",
+    "store_summary",
+    "ContextEngine",
+    "get_engine",
+    "smart_retrieve",
+    "inject_context",
+    "detect_trigger",
+    "store_summary",
     "StructuredSummary",
     "SummaryParser",
     "parse_summary",
