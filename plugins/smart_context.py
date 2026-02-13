@@ -43,10 +43,10 @@ class ContextCompressionConfig:
     - 根据对话轮数压缩
     - 压缩前抢救关键信息
     """
-    # 对话轮数规则
-    full_rounds: int = 5          # 完整保留最近 N 轮 (推荐 3-8)
-    summary_rounds: int = 15      # 超过 N 轮只保留摘要 (推荐 10-20)
-    compress_after_rounds: int = 25  # 超过 N 轮压缩 (推荐 20-30)
+    # 对话轮数规则 - 编程任务优化配置
+    full_rounds: int = 8          # 完整保留最近 8 轮 (编程需要更多上下文)
+    summary_rounds: int = 20      # 超过 20 轮只保留摘要 (保留关键决策)
+    compress_after_rounds: int = 35  # 超过 35 轮压缩 (长任务归档)
     
     # 摘要存储规则
     store_summary_enabled: bool = True
