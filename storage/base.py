@@ -25,6 +25,11 @@ class StorageResult:
     data: Any = None
     error: Optional[str] = None
     backend: Optional[str] = None
+
+    # Backward-compat alias
+    @property
+    def error_msg(self) -> Optional[str]:
+        return self.error
     
     @property
     def is_ok(self) -> bool:

@@ -90,6 +90,7 @@ class NexusCore:
     
     def _background_warmup(self):
         """后台预热线程"""
+        print("[Nexus Hook Debug] Triggering background warmup...") # Added print
         self._warming = True
         try:
             if not NEXUS_AVAILABLE:
@@ -519,6 +520,7 @@ def nexus_init(blocking: bool = False) -> bool:
     Args:
         blocking: 是否阻塞等待预热完成
     """
+    print("[Nexus Hook Debug] Entering nexus_init...")  # Added print
     nexus = _get_nexus()
     if blocking:
         return nexus.init()
@@ -683,6 +685,17 @@ def nexus_stats() -> Dict[str, Any]:
 def nexus_health() -> Dict[str, Any]:
     """健康检查"""
     return _get_nexus().health()
+
+
+# ======== 兼容性别名（避免 ImportError） ========
+def get_stats() -> Dict[str, Any]:
+    """兼容旧接口：get_stats()"""
+    return nexus_stats()
+
+
+def start_background_warmup() -> None:
+    """兼容旧接口：start_background_warmup()"""
+    _get_nexus().start_background_warmup()
 
 
 # CLI 入口

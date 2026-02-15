@@ -30,7 +30,12 @@ class Event:
     timestamp: datetime = field(default_factory=datetime.now)
     source: Optional[str] = None
     priority: EventPriority = EventPriority.NORMAL
-    
+
+    # Backward-compat alias (older code/tests expect `.data`)
+    @property
+    def data(self) -> Dict[str, Any]:
+        return self.payload
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         return {
@@ -45,26 +50,26 @@ class Event:
 class EventBus:
     """
     Async Event Bus with Pub/Sub pattern
-    
+
     Features:
     - Async/await support
     - Event persistence (optional)
     - Priority handling
     - Error isolation (one handler failure doesn't affect others)
     """
-    
+
     def __init__(self, max_history: int = 1000):
         self._subscribers: Dict[str, List[Callable]] = {}
         self._history: List[Event] = []
         self._max_history = max_history
         self._lock = asyncio.Lock()
-    
+
     async def emit(self, event_type: str, payload: Dict[str, Any],
                    source: Optional[str] = None,
                    priority: EventPriority = EventPriority.NORMAL) -> None:
         """
         Emit an event to all subscribers
-        
+
         Args:
             event_type: Event type/topic
             payload: Event data
@@ -77,13 +82,13 @@ class EventBus:
             source=source,
             priority=priority
         )
-        
+
         # Persist to history
         async with self._lock:
             self._history.append(event)
             if len(self._history) > self._max_history:
                 self._history.pop(0)
-        
+
         # Notify subscribers
         if event_type in self._subscribers:
             handlers = self._subscribers[event_type][:]
@@ -95,40 +100,48 @@ class EventBus:
                         self._safe_sync_handler(callback, event)
                 except Exception as e:
                     logger.error(f"Error dispatching event {event_type}: {e}")
-    
+
     async def _safe_handler(self, callback: Callable, event: Event):
         """Safely execute async handler"""
         try:
             await callback(event)
         except Exception as e:
             logger.error(f"Event handler error for {event.type}: {e}")
-    
+
     def _safe_sync_handler(self, callback: Callable, event: Event):
         """Safely execute sync handler"""
         try:
             callback(event)
         except Exception as e:
             logger.error(f"Sync event handler error for {event.type}: {e}")
-    
+
     def subscribe(self, event_type: str, callback: Callable) -> None:
-        """
-        Subscribe to an event type
-        
-        Args:
-            event_type: Event type to subscribe to
-            callback: Handler function (sync or async)
-        """
+        """Subscribe to an event type."""
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
-        
+
         if callback not in self._subscribers[event_type]:
             self._subscribers[event_type].append(callback)
             logger.debug(f"Subscribed to {event_type}")
-    
+
+    # Backward-compat alias (tests + legacy code)
+    def publish(self, event_type: str, payload: Dict[str, Any], source: Optional[str] = None) -> None:
+        """Synchronous publish wrapper for `emit`.
+
+        This matches legacy API naming used in tests.
+        """
+        try:
+            import asyncio
+            loop = asyncio.get_running_loop()
+            loop.create_task(self.emit(event_type, payload, source=source))
+        except RuntimeError:
+            import asyncio
+            asyncio.run(self.emit(event_type, payload, source=source))
+
     def unsubscribe(self, event_type: str, callback: Callable) -> bool:
         """
         Unsubscribe from an event type
-        
+
         Returns:
             bool: True if unsubscribed, False if not found
         """
@@ -137,38 +150,46 @@ class EventBus:
                 self._subscribers[event_type].remove(callback)
                 return True
         return False
-    
+
+    def clear_subscribers(self) -> None:
+        """Clear all subscribers (test helper)."""
+        self._subscribers.clear()
+
+    def clear_history(self) -> None:
+        """Clear event history (test helper)."""
+        self._history.clear()
+
     def get_history(self, event_type: Optional[str] = None,
                     limit: int = 100,
                     since: Optional[datetime] = None) -> List[Event]:
         """
         Get event history
-        
+
         Args:
             event_type: Filter by event type
             limit: Maximum number of events to return
             since: Only return events after this time
-            
+
         Returns:
             List of events (most recent first)
         """
         events = list(self._history)
-        
+
         if event_type:
             events = [e for e in events if e.type == event_type]
-        
+
         if since:
             events = [e for e in events if e.timestamp > since]
-        
+
         # Sort by timestamp (newest first)
         events.sort(key=lambda e: e.timestamp, reverse=True)
-        
+
         return events[:limit]
-    
+
     def clear_history(self) -> None:
         """Clear event history"""
         self._history.clear()
-    
+
     def get_subscriber_count(self, event_type: Optional[str] = None) -> int:
         """Get number of subscribers"""
         if event_type:
@@ -179,29 +200,29 @@ class EventBus:
 # Standard event types for Deep-Sea Nexus
 class EventTypes:
     """System-wide event type constants"""
-    
+
     # Session lifecycle
     SESSION_CREATED = "session.created"
     SESSION_UPDATED = "session.updated"
     SESSION_CLOSED = "session.closed"
     SESSION_ARCHIVED = "session.archived"
-    
+
     # Document operations
     DOCUMENT_ADDED = "document.added"
     DOCUMENT_UPDATED = "document.updated"
     DOCUMENT_DELETED = "document.deleted"
-    
+
     # Flush operations
     FLUSH_STARTED = "flush.started"
     FLUSH_COMPLETED = "flush.completed"
     FLUSH_FAILED = "flush.failed"
-    
+
     # System events
     CONFIG_RELOADED = "config.reloaded"
     PLUGIN_LOADED = "plugin.loaded"
     PLUGIN_UNLOADED = "plugin.unloaded"
     PLUGIN_ERROR = "plugin.error"
-    
+
     # Memory operations
     RECALL_PERFORMED = "recall.performed"
     INDEX_UPDATED = "index.updated"
@@ -214,7 +235,7 @@ _event_bus_instance: Optional[EventBus] = None
 def get_event_bus() -> EventBus:
     """
     Get the global event bus instance
-    
+
     Returns:
         EventBus: Global event bus (singleton)
     """
@@ -227,9 +248,9 @@ def get_event_bus() -> EventBus:
 def reset_event_bus() -> EventBus:
     """
     Reset and recreate the global event bus
-    
+
     Useful for testing or complete system reset.
-    
+
     Returns:
         EventBus: New event bus instance
     """

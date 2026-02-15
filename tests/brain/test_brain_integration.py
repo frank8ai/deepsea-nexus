@@ -136,6 +136,55 @@ class TestBrainIntegration(unittest.TestCase):
             out = brain_retrieve("backfill", mode="facts", limit=3, min_score=0.0)
             self.assertTrue(any("embedding" in (r.get("metadata") or {}) for r in out))
 
+    def test_novelty_gate_skips_duplicate_writes(self):
+        with tempfile.TemporaryDirectory() as td:
+            configure_brain(
+                enabled=True,
+                base_path=td,
+                scorer_type="keyword",
+                novelty_enabled=True,
+                novelty_min_similarity=0.85,
+                novelty_window_seconds=3600,
+            )
+            brain_write(
+                {
+                    "id": "n1",
+                    "kind": "fact",
+                    "priority": "P1",
+                    "source": "itest",
+                    "tags": ["dup"],
+                    "content": "Same content should be skipped",
+                }
+            )
+            brain_write(
+                {
+                    "id": "n2",
+                    "kind": "fact",
+                    "priority": "P1",
+                    "source": "itest",
+                    "tags": ["dup"],
+                    "content": "Same content should be skipped",
+                }
+            )
+            records_path = Path(td) / "brain" / "records.jsonl"
+            with records_path.open("r", encoding="utf-8") as f:
+                lines = [line for line in f if line.strip()]
+            self.assertEqual(len(lines), 1)
+
+            brain_write(
+                {
+                    "id": "n3",
+                    "kind": "fact",
+                    "priority": "P1",
+                    "source": "itest",
+                    "tags": ["uniq"],
+                    "content": "Different content should be stored",
+                }
+            )
+            with records_path.open("r", encoding="utf-8") as f:
+                lines = [line for line in f if line.strip()]
+            self.assertEqual(len(lines), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

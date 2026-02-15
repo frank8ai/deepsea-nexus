@@ -6,6 +6,10 @@ Benchmark the new architecture performance vs. expected metrics.
 
 import sys
 import os
+# Ensure the workspace `skills/` directory is importable so `import deepsea_nexus`
+# works via the compatibility shim at `skills/deepsea_nexus/`.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+# Keep skill root on path for local imports.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import time
@@ -22,12 +26,12 @@ try:
         nexus_init,
         nexus_recall,
         nexus_add,
+        CompressionManager,
     )
 except ImportError:
     from nexus_core import nexus_init, nexus_recall, nexus_add
+    from storage.compression import CompressionManager
     create_app = None
-    CompressionManager,
-)
 
 
 @dataclass
@@ -134,17 +138,21 @@ class PerformanceBenchmark(unittest.TestCase):
             try:
                 cm = CompressionManager(algo)
                 
-                def compress_func():
+                def compress_func(*, operations: int = 1):
+                    # Accept `operations` kwarg because `benchmark()` forwards it.
                     compressed = cm.compress(test_data)
                     decompressed = cm.decompress(compressed)
                     return len(test_data), len(compressed)
-                
+
                 result = self.benchmark(
                     f"Compression {algo}",
                     compress_func,
                     operations=1
                 )
                 
+                if not result.success or "result" not in result.details:
+                    self.fail(f"Compression benchmark failed: {result.details}")
+
                 original_len, compressed_len = result.details["result"]
                 compression_ratio = compressed_len / original_len
                 
@@ -160,8 +168,27 @@ class PerformanceBenchmark(unittest.TestCase):
     
     def test_concurrent_operations(self):
         """Benchmark concurrent operations"""
-        # Initialize for concurrent testing
-        self.assertTrue(nexus_init())
+        # Initialize for concurrent testing (use a temp config so plugin deps load deterministically)
+        config_path = os.path.join(self.temp_dir, "perf_concurrent_config.json")
+        config = {
+            "base_path": self.temp_dir,
+            "nexus": {"vector_db_path": os.path.join(self.temp_dir, "vector_db")},
+            "session": {"auto_archive_days": 30},
+            "flush": {"enabled": False},
+            "plugins": {
+                "auto_load": [
+                    "config_manager",
+                    "nexus_core",
+                    "session_manager",
+                    "smart_context",
+                    "flush_manager",
+                ]
+            },
+        }
+        with open(config_path, "w") as f:
+            json.dump(config, f)
+
+        self.assertTrue(nexus_init(config_path))
         
         async def concurrent_add_tasks():
             tasks = []

@@ -24,7 +24,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-from .nexus_core import NexusCore
+from ..nexus_core import NexusCore
 from .session_manager import SessionManagerPlugin
 from ..core.plugin_system import NexusPlugin, PluginMetadata
 from ..core.event_bus import EventTypes
@@ -75,8 +75,8 @@ class ConversationContext:
     round_num: int
     status: str  # "full", "summary", "compressed"
     content: str
-    summary: str = ""
     created_at: str
+    summary: str = ""
     compressed: bool = False
     
     def to_dict(self) -> Dict:
@@ -515,7 +515,7 @@ class SmartContextPlugin(NexusPlugin):
 
 def store_conversation(conversation_id: str, user_message: str, ai_response: str) -> Dict:
     """存储对话摘要（便捷函数）"""
-    from .nexus_core import NexusCore
+    from ..nexus_core import NexusCore
     
     nexus = NexusCore()
     if not nexus.init():
@@ -527,7 +527,7 @@ def store_conversation(conversation_id: str, user_message: str, ai_response: str
 
 def inject_memory_context(user_message: str) -> str:
     """注入记忆上下文（便捷函数）"""
-    from .nexus_core import NexusCore
+    from ..nexus_core import NexusCore
     
     nexus = NexusCore()
     if not nexus.init():

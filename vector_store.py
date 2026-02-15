@@ -143,10 +143,6 @@ class VectorStore:
         """删除文档"""
         self.collection.delete(ids=ids)
     
-    def count(self) -> int:
-        """获取文档数量"""
-        return self.count()
-    
     @property
     def count(self) -> int:
         """文档数量"""
@@ -187,9 +183,23 @@ class Embedder:
 
 
 # 便捷函数
-def create_vector_store(collection: str = "deepsea_nexus") -> VectorStore:
-    """创建向量存储"""
-    return VectorStore(collection_name=collection)
+def create_vector_store(config: Optional[Dict[str, Any]] = None,
+                        collection: str = "deepsea_nexus") -> VectorStore:
+    """Create vector store.
+
+    Args:
+        config: Optional app config dict; if provided, reads:
+            - config['nexus']['vector_db_path'] (persist path)
+            - config['nexus']['collection_name'] (collection override)
+        collection: Default collection name.
+    """
+    persist_path = None
+    if isinstance(config, dict):
+        nexus_cfg = config.get("nexus", {}) if isinstance(config.get("nexus", {}), dict) else {}
+        persist_path = nexus_cfg.get("vector_db_path") or persist_path
+        collection = nexus_cfg.get("collection_name") or collection
+
+    return VectorStore(collection_name=collection, persist_path=persist_path)
 
 
 def create_embedder(model: str = "all-MiniLM-L6-v2") -> Embedder:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from .scoring import KeywordScorer, Scorer
 from .vector_scorer import VectorScorer
 import uuid
@@ -13,6 +13,9 @@ _STORE: Optional[JSONLBrainStore] = None
 _SCORER: Optional[Scorer] = None
 _ENABLED: bool = False
 _TRACK_USAGE: bool = True
+_NOVELTY_ENABLED: bool = False
+_NOVELTY_MIN_SIMILARITY: float = 0.92
+_NOVELTY_WINDOW_SECONDS: int = 3600
 
 
 def configure_brain(
@@ -27,10 +30,17 @@ def configure_brain(
     decay_on_checkpoint_days: int = 14,
     decay_floor: float = 0.1,
     decay_step: float = 0.05,
+    novelty_enabled: bool = False,
+    novelty_min_similarity: float = 0.92,
+    novelty_window_seconds: int = 3600,
 ) -> None:
     global _STORE, _SCORER, _ENABLED, _TRACK_USAGE
+    global _NOVELTY_ENABLED, _NOVELTY_MIN_SIMILARITY, _NOVELTY_WINDOW_SECONDS
     _ENABLED = bool(enabled)
     _TRACK_USAGE = bool(track_usage)
+    _NOVELTY_ENABLED = bool(novelty_enabled)
+    _NOVELTY_MIN_SIMILARITY = max(0.0, min(1.0, float(novelty_min_similarity)))
+    _NOVELTY_WINDOW_SECONDS = max(0, int(novelty_window_seconds))
     _STORE = JSONLBrainStore(
         base_path=base_path,
         max_snapshots=max_snapshots,
@@ -93,6 +103,62 @@ def _maybe_attach_embedding(record: BrainRecord) -> BrainRecord:
     return record
 
 
+def _record_text(record: BrainRecord, scorer: Optional[Scorer]) -> str:
+    if isinstance(scorer, VectorScorer):
+        return scorer.record_text(record)
+    return " ".join(
+        [
+            record.kind,
+            record.source,
+            record.content,
+            " ".join(record.tags),
+        ]
+    ).strip()
+
+
+def _mode_for_kind(kind: str) -> str:
+    kind_norm = (kind or "").strip().lower()
+    if kind_norm in {"strategy", "plan"}:
+        return "strategy"
+    return "facts"
+
+
+def _parse_iso(ts: str) -> Optional[datetime]:
+    try:
+        parsed = datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _is_duplicate(record: BrainRecord, store: JSONLBrainStore, scorer: Scorer) -> bool:
+    if not _NOVELTY_ENABLED:
+        return False
+    if _NOVELTY_WINDOW_SECONDS <= 0:
+        return False
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=_NOVELTY_WINDOW_SECONDS)
+    query_text = _record_text(record, scorer)
+    mode = _mode_for_kind(record.kind)
+    min_sim = _NOVELTY_MIN_SIMILARITY
+
+    for existing in store.read_all():
+        ts = _parse_iso(existing.updated_at) or _parse_iso(existing.created_at)
+        if ts is not None and ts < cutoff:
+            continue
+        if existing.hash and existing.hash == record.hash:
+            return True
+        if min_sim <= 0:
+            continue
+        score = float(scorer.score(query=query_text, record=existing, mode=mode))
+        if score >= min_sim:
+            return True
+    return False
+
+
 def brain_write(record: BrainRecord | Dict) -> Optional[BrainRecord]:
     if not _ENABLED:
         return None
@@ -112,6 +178,10 @@ def brain_write(record: BrainRecord | Dict) -> Optional[BrainRecord]:
     # Ensure hash reflects latest content before embedding.
     record_obj.hash = record_obj.compute_hash()
     record_obj = _maybe_attach_embedding(record_obj)
+
+    scorer = _SCORER or KeywordScorer()
+    if _is_duplicate(record_obj, store, scorer):
+        return None
 
     return store.write(record_obj)
 

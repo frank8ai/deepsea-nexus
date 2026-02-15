@@ -69,6 +69,21 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
         config.load_file(config_path)
 
     cfg = config.get_all()
+    if not isinstance(cfg, dict):
+        cfg = {}
+
+    # Ensure plugin auto-load order includes config_manager (dependency root)
+    plugins_cfg = cfg.get("plugins", {}) if isinstance(cfg.get("plugins", {}), dict) else {}
+    auto_load = plugins_cfg.get("auto_load")
+    if not auto_load:
+        plugins_cfg["auto_load"] = [
+            "config_manager",
+            "nexus_core",
+            "session_manager",
+            "smart_context",
+            "flush_manager",
+        ]
+    cfg["plugins"] = plugins_cfg
     brain_cfg = cfg.get("brain", {}) if isinstance(cfg, dict) else {}
     env_enabled = os.environ.get("DEEPSEA_BRAIN_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
     brain_enabled = bool(brain_cfg.get("enabled", False) or env_enabled)
@@ -79,16 +94,12 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
     # Register plugins if needed
     if not plugin:
         try:
-            from .plugins.nexus_core_plugin import NexusCorePlugin
             from .app import create_app
         except ImportError:
-            from plugins.nexus_core_plugin import NexusCorePlugin
             from app import create_app
-        
-        # Create and initialize app
+
+        # Create and initialize app (handles plugin registration + dependency order)
         app = create_app(config_path)
-        
-        # Run async initialization in sync context
         return bool(run_coro_sync(app.initialize()))
     
     # Initialize existing plugin

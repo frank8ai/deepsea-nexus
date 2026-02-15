@@ -489,6 +489,12 @@ def reset_plugin_registry() -> PluginRegistry:
     return _registry_instance
 
 
+# Backward-compat test helper
+def clear_plugin_registry() -> PluginRegistry:
+    """Alias for reset_plugin_registry (used by tests)."""
+    return reset_plugin_registry()
+
+
 # Convenience decorator for plugin registration
 def plugin(metadata: PluginMetadata):
     """

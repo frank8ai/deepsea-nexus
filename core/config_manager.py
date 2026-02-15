@@ -103,7 +103,13 @@ class ConfigManager:
             "file": None,
         },
         "plugins": {
-            "auto_load": ["nexus_core", "session_manager", "flush_manager"],
+            "auto_load": [
+                "config_manager",
+                "nexus_core",
+                "session_manager",
+                "smart_context",
+                "flush_manager",
+            ],
             "hot_reload": True,
         },
     }
@@ -227,8 +233,14 @@ class ConfigManager:
             logger.info(f"✓ Config loaded: {path}")
             
             # Emit event
-            asyncio = __import__('asyncio')
-            asyncio.create_task(self._emit_reload_event())
+            try:
+                import asyncio
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._emit_reload_event())
+            except RuntimeError:
+                # No running event loop (sync context)
+                import asyncio
+                asyncio.run(self._emit_reload_event())
             
             return True
             

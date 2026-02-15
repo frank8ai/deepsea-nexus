@@ -15,7 +15,8 @@ from .core.event_bus import get_event_bus, EventBus
 from .core.plugin_system import get_plugin_registry, PluginRegistry, PluginState
 
 # Import plugins
-from .plugins.nexus_core import NexusCorePlugin
+from .plugins.config_manager_plugin import ConfigManagerPlugin
+from .plugins.nexus_core_plugin import NexusCorePlugin
 from .plugins.session_manager import SessionManagerPlugin
 from .plugins.flush_manager import FlushManagerPlugin
 from .plugins.smart_context import SmartContextPlugin
@@ -121,11 +122,19 @@ class NexusApplication:
         if self._plugins_registered:
             return
         
+        nexus_core = NexusCorePlugin()
+        session_manager = SessionManagerPlugin()
+        smart_context = SmartContextPlugin()
+        flush_manager = FlushManagerPlugin()
+
+        config_manager = ConfigManagerPlugin()
+
         plugins = [
-            (NexusCorePlugin(), NexusCorePlugin().metadata),
-            (SessionManagerPlugin(), SessionManagerPlugin().metadata),
-            (SmartContextPlugin(), SmartContextPlugin().metadata),  # 智能上下文
-            (FlushManagerPlugin(), FlushManagerPlugin().metadata),
+            (config_manager, config_manager.metadata),
+            (nexus_core, nexus_core.metadata),
+            (session_manager, session_manager.metadata),
+            (smart_context, smart_context.metadata),  # 智能上下文
+            (flush_manager, flush_manager.metadata),
         ]
         
         for plugin, metadata in plugins:
@@ -140,6 +149,7 @@ class NexusApplication:
         """Initialize all plugins in dependency order"""
         # Get auto-load list from config
         auto_load = config.get("plugins", {}).get("auto_load", [
+            "config_manager",
             "nexus_core",
             "session_manager",
             "smart_context",  # 智能上下文（核心功能）

@@ -56,23 +56,12 @@ class NexusCorePlugin(NexusPlugin):
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """Initialize Nexus Core"""
         try:
-            # Import Deep-Sea Nexus source modules
-            skill_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            nexus_path = os.path.join(os.path.dirname(skill_root), 'deepsea-nexus')
-            
-            if nexus_path not in sys.path:
-                sys.path.insert(0, nexus_path)
-                sys.path.insert(0, os.path.join(nexus_path, 'src', 'retrieval'))
-                sys.path.insert(0, os.path.join(nexus_path, 'vector_store'))
-            
-            # Try to import core modules
+            # Prefer in-repo implementation (no extra sys.path surgery).
             try:
-                from semantic_recall import create_semantic_recall
-                from init_chroma import create_vector_store
-                from manager import create_manager
+                from ..vector_store_legacy import create_vector_store
                 self._available = True
-            except ImportError as e:
-                logger.warning(f"Deep-Sea Nexus source not available: {e}")
+            except Exception as e:
+                logger.warning(f"Vector store backend not available: {e}")
                 self._available = False
                 # Still return True - we can work in degraded mode
                 return True
@@ -101,6 +90,10 @@ class NexusCorePlugin(NexusPlugin):
             brain_decay_on_checkpoint_days = int(brain_cfg.get("decay_on_checkpoint_days", 14))
             brain_decay_floor = float(brain_cfg.get("decay_floor", 0.1))
             brain_decay_step = float(brain_cfg.get("decay_step", 0.05))
+            brain_novelty_cfg = brain_cfg.get("novelty", {}) if isinstance(brain_cfg, dict) else {}
+            brain_novelty_enabled = bool(brain_novelty_cfg.get("enabled", False))
+            brain_novelty_min_similarity = float(brain_novelty_cfg.get("min_similarity", 0.92))
+            brain_novelty_window_seconds = int(brain_novelty_cfg.get("window_seconds", 3600))
 
             if self._brain_enabled:
                 try:
@@ -118,6 +111,9 @@ class NexusCorePlugin(NexusPlugin):
                         decay_on_checkpoint_days=brain_decay_on_checkpoint_days,
                         decay_floor=brain_decay_floor,
                         decay_step=brain_decay_step,
+                        novelty_enabled=brain_novelty_enabled,
+                        novelty_min_similarity=brain_novelty_min_similarity,
+                        novelty_window_seconds=brain_novelty_window_seconds,
                     )
                     self._brain_available = True
                     logger.info("✓ Brain hook enabled")
@@ -139,15 +135,8 @@ class NexusCorePlugin(NexusPlugin):
             if self._available:
                 logger.info("🔄 Initializing vector store...")
 
-                store = create_vector_store()
-                manager = create_manager(store.embedder, store.collection)
-                recall = create_semantic_recall(manager)
-
-                self._vector_backend = {
-                    'store': store,
-                    'manager': manager,
-                    'recall': recall,
-                }
+                store = create_vector_store(config)
+                self._vector_backend = store
 
                 stats = await self._get_stats()
                 logger.info(f"✓ Nexus Core ready ({stats.get('total_documents', 0)} documents)")
@@ -155,7 +144,7 @@ class NexusCorePlugin(NexusPlugin):
             return True
             
         except Exception as e:
-            logger.error(f"✗ Nexus Core init failed: {e}")
+            logger.exception("✗ Nexus Core init failed")
             return False
     
     async def start(self) -> bool:
@@ -226,19 +215,47 @@ class NexusCorePlugin(NexusPlugin):
 
         vector_results: List[RecallResult] = []
         try:
-            recall = self._vector_backend['recall']
-            results = recall.search(query, n_results=n)
+            backend = self._vector_backend
 
-            vector_results = [
-                RecallResult(
-                    content=r.content,
-                    source=r.metadata.get('title', r.doc_id),
-                    relevance=r.relevance_score,
-                    metadata={"origin": "vector", **(r.metadata or {})},
-                    doc_id=r.doc_id,
-                )
-                for r in results
-            ]
+            if isinstance(backend, dict) and "recall" in backend:
+                recall = backend["recall"]
+                results = recall.search(query, n_results=n)
+
+                vector_results = [
+                    RecallResult(
+                        content=r.content,
+                        source=r.metadata.get('title', r.doc_id),
+                        relevance=r.relevance_score,
+                        metadata={"origin": "vector", **(r.metadata or {})},
+                        doc_id=r.doc_id,
+                    )
+                    for r in results
+                ]
+            else:
+                # VectorStore wrapper path
+                raw = backend.search(query=query, n_results=n)
+                docs = (raw or {}).get("documents") or [[]]
+                metas = (raw or {}).get("metadatas") or [[]]
+                ids = (raw or {}).get("ids") or [[]]
+                dists = (raw or {}).get("distances") or [[]]
+
+                for i in range(min(n, len(docs[0]) if docs else 0)):
+                    content = docs[0][i]
+                    meta = metas[0][i] if metas and metas[0] and i < len(metas[0]) else {}
+                    doc_id = ids[0][i] if ids and ids[0] and i < len(ids[0]) else ""
+                    dist = dists[0][i] if dists and dists[0] and i < len(dists[0]) else None
+                    # Convert distance -> pseudo relevance (best-effort). If missing, default 0.5.
+                    relevance = 0.5 if dist is None else max(0.0, 1.0 - float(dist))
+
+                    vector_results.append(
+                        RecallResult(
+                            content=str(content),
+                            source=str((meta or {}).get("title", doc_id or "doc")),
+                            relevance=float(relevance),
+                            metadata={"origin": "vector", **(meta or {})},
+                            doc_id=str(doc_id),
+                        )
+                    )
 
         except Exception as e:
             logger.error(f"Search error: {e}")
@@ -327,17 +344,30 @@ class NexusCorePlugin(NexusPlugin):
             return None
 
         try:
-            manager = self._vector_backend['manager']
+            # Support both legacy dict backends and the newer VectorStore wrapper.
+            backend = self._vector_backend
 
             metadata = {"title": title or "Untitled"}
             if tags:
-                metadata["tags"] = [t.strip() for t in tags.split(",")]
+                metadata["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
 
-            new_id = manager.add_note(
-                content=content,
-                metadata=metadata,
-                note_id=doc_id,
-            )
+            if isinstance(backend, dict) and "manager" in backend:
+                manager = backend["manager"]
+                new_id = manager.add_note(
+                    content=content,
+                    metadata=metadata,
+                    note_id=doc_id,
+                )
+            else:
+                # VectorStore wrapper path
+                import uuid
+
+                new_id = doc_id or str(uuid.uuid4())[:8]
+                backend.add(
+                    documents=[content],
+                    ids=[new_id],
+                    metadatas=[metadata],
+                )
 
             # Emit event
             await self.emit(EventTypes.DOCUMENT_ADDED, {
@@ -416,12 +446,21 @@ class NexusCorePlugin(NexusPlugin):
         if not self._available or not self._vector_backend:
             return {"total_documents": 0, "status": "unavailable"}
         
+        backend = self._vector_backend
         try:
-            recall = self._vector_backend['recall']
-            stats = recall.get_recall_stats()
+            if isinstance(backend, dict) and "recall" in backend:
+                recall = backend["recall"]
+                stats = recall.get_recall_stats()
+                return {
+                    "total_documents": stats.get("total_documents", 0),
+                    "collection_name": stats.get("collection_name", "N/A"),
+                    "status": "active" if self.state == PluginState.ACTIVE else "inactive",
+                }
+
+            # VectorStore wrapper
             return {
-                "total_documents": stats.get("total_documents", 0),
-                "collection_name": stats.get("collection_name", "N/A"),
+                "total_documents": int(getattr(backend, "count", 0)),
+                "collection_name": getattr(backend, "collection_name", "deepsea_nexus"),
                 "status": "active" if self.state == PluginState.ACTIVE else "inactive",
             }
         except Exception:

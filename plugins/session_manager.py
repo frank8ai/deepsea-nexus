@@ -185,15 +185,25 @@ class SessionManagerPlugin(NexusPlugin):
             status="active"
         )
         
-        # Persist
-        asyncio.create_task(self._save_session(session_id))
-        
-        # Emit event
-        asyncio.create_task(self.emit(EventTypes.SESSION_CREATED, {
+        # Persist (sync-safe)
+        try:
+            asyncio.get_running_loop().create_task(self._save_session(session_id))
+        except RuntimeError:
+            asyncio.run(self._save_session(session_id))
+
+        # Emit event (sync-safe)
+        try:
+            asyncio.get_running_loop().create_task(self.emit(EventTypes.SESSION_CREATED, {
             "session_id": session_id,
             "topic": topic,
             "timestamp": now_str,
         }))
+        except RuntimeError:
+            asyncio.run(self.emit(EventTypes.SESSION_CREATED, {
+                "session_id": session_id,
+                "topic": topic,
+                "timestamp": now_str,
+            }))
         
         logger.info(f"✓ Session created: {session_id}")
         return session_id
@@ -215,7 +225,10 @@ class SessionManagerPlugin(NexusPlugin):
             return False
         
         self.sessions[session_id].last_active = datetime.now().isoformat()
-        asyncio.create_task(self._save_session(session_id))
+        try:
+            asyncio.get_running_loop().create_task(self._save_session(session_id))
+        except RuntimeError:
+            asyncio.run(self._save_session(session_id))
         
         # Emit event
         asyncio.create_task(self.emit(EventTypes.SESSION_UPDATED, {
@@ -238,15 +251,26 @@ class SessionManagerPlugin(NexusPlugin):
         session.status = "paused"
         session.last_active = datetime.now().isoformat()
         
-        asyncio.create_task(self._save_session(session_id))
-        
+        try:
+            asyncio.get_running_loop().create_task(self._save_session(session_id))
+        except RuntimeError:
+            asyncio.run(self._save_session(session_id))
+
         # Emit event
-        asyncio.create_task(self.emit(EventTypes.SESSION_CLOSED, {
+        try:
+            asyncio.get_running_loop().create_task(self.emit(EventTypes.SESSION_CLOSED, {
             "session_id": session_id,
             "topic": session.topic,
             "chunks": session.chunk_count,
             "gold": session.gold_count,
         }))
+        except RuntimeError:
+            asyncio.run(self.emit(EventTypes.SESSION_CLOSED, {
+                "session_id": session_id,
+                "topic": session.topic,
+                "chunks": session.chunk_count,
+                "gold": session.gold_count,
+            }))
         
         logger.info(f"✓ Session closed: {session_id}")
         return True
@@ -363,10 +387,7 @@ class SessionManagerPlugin(NexusPlugin):
             return
         
         try:
-            await self._storage.save_session(
-                session_id,
-                self.sessions[session_id].to_dict()
-            )
+            await self._storage.save_session(self.sessions[session_id].to_dict())
         except Exception as e:
             logger.error(f"Failed to save session {session_id}: {e}")
     

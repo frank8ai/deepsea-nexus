@@ -32,8 +32,24 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 __author__ = "Deep-Sea Nexus Team"
+
+# =============================================================================
+# v3.2 Enhancement - Layered Config Loader (89% Token Saving)
+# =============================================================================
+
+try:
+    from .v3_2_enhancement.v3_2_core.config_loader import (
+        get_config_loader,
+        get_resident_config,
+        load_task_config,
+        list_capabilities,
+    )
+    from .v3_2_enhancement.v3_2_core.nexus_v3 import Nexus
+    V3_2_AVAILABLE = True
+except ImportError:
+    V3_2_AVAILABLE = False
 
 # =============================================================================
 # New API (v3.0) - Recommended
@@ -105,10 +121,14 @@ from .plugins.context_engine import (
     store_summary,
     ContextEnginePlugin,
     StructuredSummary,
-    SummaryParser,
     parse_summary,
-    create_summary_prompt,
 )
+
+# Backward-compatible SummaryParser + prompt helper (v3.1 legacy API)
+from .auto_summary import SummaryParser
+
+# Backward-compatible helper: create_summary_prompt
+create_summary_prompt = SummaryParser.create_structured_summary_prompt
 
 # =============================================================================
 # Backward Compatible API (v2.x)
@@ -138,7 +158,13 @@ from .compat import (
     # Compression
     nexus_compress_session,
     nexus_decompress_session,
-    
+
+    # Brain (optional MVP)
+    brain_retrieve,
+    brain_write,
+    brain_checkpoint,
+    brain_rollback,
+
     # Utils
     get_version,
 )
@@ -233,6 +259,13 @@ __all__ = [
     "manual_flush",
     "nexus_compress_session",
     "nexus_decompress_session",
+
+    # Brain API (optional MVP)
+    "brain_retrieve",
+    "brain_write",
+    "brain_checkpoint",
+    "brain_rollback",
+
     "get_version",
 ]
 

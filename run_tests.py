@@ -18,11 +18,16 @@ def run_command(cmd, description):
     
     try:
         result = subprocess.run(
-            cmd, 
-            shell=True, 
-            capture_output=True, 
+            cmd,
+            shell=True,
+            capture_output=True,
             text=True,
-            cwd=os.path.dirname(os.path.abspath(__file__))
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            env={
+                **os.environ,
+                # Ensure subprocess uses the same Python environment when invoked
+                "PYTHONNOUSERSITE": os.environ.get("PYTHONNOUSERSITE", "1"),
+            },
         )
         
         if result.returncode == 0:
@@ -50,7 +55,9 @@ def run_python_tests():
     test_files = [
         tests_dir / "test_units.py",
         tests_dir / "test_integration.py", 
-        tests_dir / "test_performance.py"
+        tests_dir / "test_performance.py",
+        tests_dir / "brain" / "test_brain_units.py",
+        tests_dir / "brain" / "test_brain_integration.py",
     ]
     
     all_passed = True
@@ -58,7 +65,8 @@ def run_python_tests():
     for test_file in test_files:
         if test_file.exists():
             print(f"\n📋 Running {test_file.name}...")
-            cmd = f"python3 {test_file} -v"
+            py = sys.executable
+            cmd = f"{py} {test_file} -v"
             success = run_command(cmd, f"Running {test_file.name}")
             all_passed = all_passed and success
         else:
@@ -147,6 +155,15 @@ def main():
     # Change to the skills directory
     skills_dir = Path(__file__).parent
     os.chdir(skills_dir)
+
+    # Ensure the workspace `skills/` directory is importable.
+    workspace_skills_dir = str(skills_dir.parent)
+    if workspace_skills_dir not in sys.path:
+        sys.path.insert(0, workspace_skills_dir)
+
+    # Ensure tests can import `deepsea_nexus` even when executed as subprocesses.
+    # (The project directory is `deepsea-nexus` but the import name is `deepsea_nexus`.)
+    os.environ["PYTHONPATH"] = workspace_skills_dir + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
     
     all_passed = True
     
