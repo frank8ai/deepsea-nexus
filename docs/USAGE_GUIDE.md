@@ -218,6 +218,52 @@ stats = manager.get_stats()
 print(f"总文档数: {stats['total_documents']}")
 ```
 
+---
+
+## vNext Brain (Optional)
+
+> Optional brain layer with pluggable scoring and safe fallbacks.
+
+### Enable brain in config.json
+
+```json
+{
+  "brain": {
+    "enabled": true,
+    "base_path": "/Users/yizhi/.openclaw/workspace",
+    "mode": "facts",
+    "min_score": 0.2,
+    "merge": "append",
+    "scorer_type": "keyword",
+    "max_snapshots": 20
+  }
+}
+```
+
+Supported `scorer_type` values:
+- `keyword` (default, dependency-free)
+- `vector` (sentence-transformers if available; falls back safely)
+- `hashed-vector` (dependency-free hashed embedding)
+
+### Embedding write-back
+
+When `scorer_type` enables real sentence-transformers embeddings, brain writes will
+precompute and store embeddings in record metadata for fast recall. If the model
+is not available, the system falls back to hashed embeddings without breaking.
+
+### Brain API
+
+```python
+from deepsea_nexus.brain import configure_brain, brain_write, brain_retrieve, checkpoint, rollback, list_versions
+
+configure_brain(enabled=True, base_path="/Users/yizhi/.openclaw/workspace", scorer_type="vector")
+brain_write({"id": "1", "kind": "fact", "source": "demo", "content": "JSONL is append-only"})
+results = brain_retrieve("append-only", mode="facts", limit=3)
+stats = checkpoint()
+versions = list_versions()
+rollback(stats["version"])
+```
+
 ### 文本切片 API
 
 ```python
