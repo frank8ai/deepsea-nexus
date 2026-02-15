@@ -12,19 +12,27 @@ Both APIs work simultaneously - no breaking changes!
 """
 
 import asyncio
+import os
+
+from .compat_async import run_coro_sync
 from typing import List, Dict, Any, Optional
 import logging
 
 try:
     from .core.plugin_system import get_plugin_registry, PluginState
     from .core.config_manager import get_config_manager
-    from .plugins.nexus_core import RecallResult
+    from .plugins.nexus_core_plugin import RecallResult
 except ImportError:
     from core.plugin_system import get_plugin_registry, PluginState
     from core.config_manager import get_config_manager
-    from plugins.nexus_core import RecallResult
+    from plugins.nexus_core_plugin import RecallResult
 
 logger = logging.getLogger(__name__)
+
+try:
+    from .brain import configure_brain, brain_retrieve as _brain_retrieve, brain_write as _brain_write, checkpoint as _brain_checkpoint, rollback as _brain_rollback, list_versions as _brain_list_versions, backfill_embeddings as _brain_backfill_embeddings
+except ImportError:
+    from brain import configure_brain, brain_retrieve as _brain_retrieve, brain_write as _brain_write, checkpoint as _brain_checkpoint, rollback as _brain_rollback, list_versions as _brain_list_versions, backfill_embeddings as _brain_backfill_embeddings
 
 # =============================================================================
 # Backward Compatible API Functions
@@ -59,39 +67,46 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
     config = get_config_manager(config_path)
     if config_path:
         config.load_file(config_path)
+
+    cfg = config.get_all()
+    brain_cfg = cfg.get("brain", {}) if isinstance(cfg, dict) else {}
+    env_enabled = os.environ.get("DEEPSEA_BRAIN_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+    brain_enabled = bool(brain_cfg.get("enabled", False) or env_enabled)
+    brain_base_path = brain_cfg.get("base_path", ".") if isinstance(brain_cfg, dict) else "."
+    brain_max_snapshots = brain_cfg.get("max_snapshots", 20) if isinstance(brain_cfg, dict) else 20
+    configure_brain(enabled=brain_enabled, base_path=brain_base_path, max_snapshots=brain_max_snapshots)
     
     # Register plugins if needed
     if not plugin:
         try:
-            from .plugins.nexus_core import NexusCorePlugin
+            from .plugins.nexus_core_plugin import NexusCorePlugin
             from .app import create_app
         except ImportError:
-            from plugins.nexus_core import NexusCorePlugin
+            from plugins.nexus_core_plugin import NexusCorePlugin
             from app import create_app
         
         # Create and initialize app
         app = create_app(config_path)
         
         # Run async initialization in sync context
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If in async context, schedule initialization
-                asyncio.create_task(app.initialize())
-                return True
-            else:
-                # Run synchronously
-                return loop.run_until_complete(app.initialize())
-        except RuntimeError:
-            # No event loop, create one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(app.initialize())
+        return bool(run_coro_sync(app.initialize()))
     
     # Initialize existing plugin
-    return asyncio.get_event_loop().run_until_complete(
-        registry.load("nexus_core", config.get_all())
-    )
+    config_dict = config.get_all()
+    # Ensure dependency order includes config_manager
+    auto_load = config_dict.get("plugins", {}).get("auto_load")
+    if not auto_load:
+        config_dict.setdefault("plugins", {})["auto_load"] = [
+            "config_manager",
+            "nexus_core",
+            "session_manager",
+            "smart_context",
+            "flush_manager",
+        ]
+
+    ok = bool(run_coro_sync(registry.load("config_manager", config_dict)))
+    ok2 = bool(run_coro_sync(registry.load("nexus_core", config_dict)))
+    return bool(ok and ok2)
 
 
 def nexus_recall(query: str, n: int = 5) -> List[RecallResult]:
@@ -125,16 +140,7 @@ def nexus_recall(query: str, n: int = 5) -> List[RecallResult]:
     
     # Run async search
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # If already in async context
-            future = asyncio.ensure_future(plugin.search_recall(query, n))
-            # Wait for result (may need different approach in some contexts)
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, future).result()
-        else:
-            return loop.run_until_complete(plugin.search_recall(query, n))
+        return run_coro_sync(plugin.search_recall(query, n))
     except Exception as e:
         logger.error(f"Recall error: {e}")
         return []
@@ -176,14 +182,7 @@ def nexus_add(content: str, title: str, tags: str = "") -> Optional[str]:
         return None
     
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            future = asyncio.ensure_future(plugin.add_document(content, title, tags))
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                return pool.submit(asyncio.run, future).result()
-        else:
-            return loop.run_until_complete(plugin.add_document(content, title, tags))
+        return run_coro_sync(plugin.add_document(content, title, tags))
     except Exception as e:
         logger.error(f"Add error: {e}")
         return None
@@ -410,6 +409,43 @@ def nexus_decompress_session(compressed_path: str, output_path: str = None) -> s
 # Version Info
 # =============================================================================
 
+def brain_retrieve(query: str, mode: str = "facts", limit: int = 5, min_score: float = 0.2, priority_filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Optional brain-layer retrieval hook (MVP)."""
+    return _brain_retrieve(
+        query=query,
+        mode=mode,
+        limit=limit,
+        min_score=min_score,
+        priority_filter=priority_filter,
+    )
+
+
+def brain_write(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Optional brain-layer write hook (MVP)."""
+    out = _brain_write(record)
+    return out.to_dict() if out else None
+
+
+def brain_checkpoint() -> Dict[str, int]:
+    """Optional brain-layer checkpoint hook (MVP)."""
+    return _brain_checkpoint()
+
+
+def brain_rollback(version: str) -> bool:
+    """Optional brain-layer rollback hook (MVP)."""
+    return bool(_brain_rollback(version))
+
+
+def brain_list_versions() -> List[str]:
+    """Optional brain-layer versions listing hook (MVP)."""
+    return list(_brain_list_versions())
+
+
+def brain_backfill_embeddings(limit: int = 0) -> Dict[str, int]:
+    """Optional brain-layer embedding backfill hook (MVP)."""
+    return _brain_backfill_embeddings(limit=limit)
+
+
 def get_version() -> str:
     """Get Deep-Sea Nexus version"""
     return "3.0.0"
@@ -441,6 +477,14 @@ __all__ = [
     "nexus_compress_session",
     "nexus_decompress_session",
     
+    # Brain API (optional MVP)
+    "brain_retrieve",
+    "brain_write",
+    "brain_checkpoint",
+    "brain_rollback",
+    "brain_list_versions",
+    "brain_backfill_embeddings",
+
     # Utilities
     "get_version",
 ]

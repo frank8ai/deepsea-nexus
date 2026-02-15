@@ -235,7 +235,9 @@ print(f"总文档数: {stats['total_documents']}")
     "min_score": 0.2,
     "merge": "append",
     "scorer_type": "keyword",
-    "max_snapshots": 20
+    "max_snapshots": 20,
+    "backfill_on_start": false,
+    "backfill_limit": 0
   }
 }
 ```
@@ -262,6 +264,16 @@ results = brain_retrieve("append-only", mode="facts", limit=3)
 stats = checkpoint()
 versions = list_versions()
 rollback(stats["version"])
+```
+
+### Backfill embeddings (optional)
+
+```python
+from deepsea_nexus.brain import backfill_embeddings
+
+# Backfill stored records when sentence-transformers is available
+stats = backfill_embeddings(limit=0)  # limit=0 means no limit
+print(stats)
 ```
 
 ### 文本切片 API

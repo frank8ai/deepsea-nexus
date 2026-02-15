@@ -8,7 +8,7 @@ SKILLS = ROOT.parent
 if str(SKILLS) not in sys.path:
     sys.path.insert(0, str(SKILLS))
 
-from deepsea_nexus.brain.api import configure_brain, brain_write, brain_retrieve, checkpoint, rollback
+from deepsea_nexus.brain.api import configure_brain, brain_write, brain_retrieve, checkpoint, rollback, backfill_embeddings
 from deepsea_nexus.brain.vector_scorer import VectorScorer
 
 
@@ -96,6 +96,45 @@ class TestBrainIntegration(unittest.TestCase):
             # rollback should succeed to the last checkpoint version
             self.assertTrue(stats.get("version"))
             self.assertTrue(rollback(stats["version"]))
+
+    def test_backfill_embeddings_appends_updates(self):
+        class _FakeEmb:
+            def __init__(self, vec):
+                self._vec = vec
+
+            def tolist(self):
+                return list(self._vec)
+
+        class _FakeModel:
+            def encode(self, texts, normalize_embeddings=True):
+                return [_FakeEmb([0.2, 0.1, 0.0])]
+
+        with tempfile.TemporaryDirectory() as td:
+            # First run with hashed-vector (no embedding stored)
+            configure_brain(enabled=True, base_path=td, scorer_type="hashed-vector")
+            rec = brain_write(
+                {
+                    "id": "bf1",
+                    "kind": "fact",
+                    "priority": "P1",
+                    "source": "itest",
+                    "content": "Backfill me",
+                }
+            )
+            self.assertIsNotNone(rec)
+            self.assertFalse("embedding" in (rec.metadata or {}))
+
+            # Reconfigure with real vector scorer and backfill
+            scorer = VectorScorer(dim=3, use_sentence_transformers=False)
+            scorer._st_model = _FakeModel()
+            scorer.use_sentence_transformers = True
+            configure_brain(enabled=True, base_path=td, scorer=scorer)
+
+            stats = backfill_embeddings()
+            self.assertGreaterEqual(stats.get("updated", 0), 1)
+
+            out = brain_retrieve("backfill", mode="facts", limit=3, min_score=0.0)
+            self.assertTrue(any("embedding" in (r.get("metadata") or {}) for r in out))
 
 
 if __name__ == "__main__":

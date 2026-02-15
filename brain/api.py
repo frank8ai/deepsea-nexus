@@ -152,3 +152,49 @@ def list_versions() -> List[str]:
         return []
     store = _ensure_store()
     return store.list_versions()
+
+
+def backfill_embeddings(limit: int = 0) -> Dict[str, int]:
+    """Backfill embeddings for existing records (best-effort).
+
+    This only runs when a real sentence-transformers model is available.
+    It appends updated records with embeddings to the write-ahead log so that
+    checkpoint compaction can dedupe later.
+    """
+    if not _ENABLED:
+        return {"scanned": 0, "updated": 0, "skipped": 0}
+
+    scorer = _SCORER
+    if not isinstance(scorer, VectorScorer):
+        return {"scanned": 0, "updated": 0, "skipped": 0}
+    if not scorer.use_sentence_transformers or scorer._st_model is None:
+        return {"scanned": 0, "updated": 0, "skipped": 0}
+
+    store = _ensure_store()
+    now = datetime.now(timezone.utc).isoformat()
+
+    scanned = 0
+    updated = 0
+    skipped = 0
+
+    for rec in store.read_all():
+        scanned += 1
+        meta = rec.metadata or {}
+        if (
+            isinstance(meta.get("embedding"), list)
+            and meta.get("embedding_model") == scorer.model_name
+            and meta.get("embedding_dim") == scorer.dim
+            and meta.get("embedding_kind") == "sentence-transformers"
+            and meta.get("embedding_hash") == rec.hash
+        ):
+            skipped += 1
+        else:
+            rec.updated_at = now
+            rec = _maybe_attach_embedding(rec)
+            store.write(rec)
+            updated += 1
+
+        if limit and scanned >= limit:
+            break
+
+    return {"scanned": scanned, "updated": updated, "skipped": skipped}

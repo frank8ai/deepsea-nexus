@@ -1,38 +1,58 @@
 {
   "paths": {
-    "base": "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2", 
-    "archive_monthly": "memory/90_Memory/YYYY-MM", 
-    "inbox": "memory/00_Inbox", 
+    "base": "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2",
+    "archive_monthly": "memory/90_Memory/YYYY-MM",
+    "inbox": "memory/00_Inbox",
     "memory": "memory/90_Memory"
-  }, 
+  },
   "logging": {
-    "format": "%(asctime)s - %(levelname)s - %(message)s", 
+    "format": "%(asctime)s - %(levelname)s - %(message)s",
     "level": "INFO"
-  }, 
+  },
   "index": {
-    "max_session_tokens": 1000, 
-    "max_index_tokens": 300, 
+    "max_session_tokens": 1000,
+    "max_index_tokens": 300,
     "max_line_length": 80
-  }, 
+  },
   "project": {
-    "version": "2.0.0", 
-    "name": "Deep-Sea Nexus v2.0", 
+    "version": "2.0.0",
+    "name": "Deep-Sea Nexus v2.0",
     "author": "OpenClaw"
-  }, 
+  },
   "session": {
-    "min_size": 100, 
-    "auto_split_size": 5000, 
+    "min_size": 100,
+    "auto_split_size": 5000,
     "name_format": "session_HHMM_Topic"
-  }, 
+  },
   "flush": {
-    "time": "03:00", 
-    "enabled": true, 
+    "time": "03:00",
+    "enabled": true,
     "auto_hours": 24
-  }, 
+  },
+  "plugins": {
+    "auto_load": [
+      "config_manager",
+      "nexus_core",
+      "session_manager",
+      "smart_context",
+      "flush_manager"
+    ]
+  },
+  "brain": {
+    "enabled": false,
+    "base_path": "/Users/yizhi/.openclaw/workspace",
+    "max_snapshots": 20,
+    "merge": "append",
+    "mode": "facts",
+    "min_score": 0.2,
+    "scorer_type": "keyword",
+    "backfill_on_start": false,
+    "backfill_limit": 0
+  },
   "optional": {
-    "cross_date_search": false, 
-    "rag_enabled": false, 
-    "mcp_enabled": false, 
-    "vector_store": false
+    "cross_date_search": true,
+    "rag_enabled": true,
+    "mcp_enabled": false,
+    "vector_store": true
   }
 }
