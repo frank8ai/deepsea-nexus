@@ -12,6 +12,7 @@ from .store import JSONLBrainStore
 _STORE: Optional[JSONLBrainStore] = None
 _SCORER: Optional[Scorer] = None
 _ENABLED: bool = False
+_TRACK_USAGE: bool = True
 
 
 def configure_brain(
@@ -20,10 +21,19 @@ def configure_brain(
     scorer: Optional[Scorer] = None,
     scorer_type: str = "keyword",
     max_snapshots: int = 20,
+    dedupe_on_write: bool = False,
+    dedupe_recent_max: int = 5000,
+    track_usage: bool = True,
 ) -> None:
-    global _STORE, _SCORER, _ENABLED
+    global _STORE, _SCORER, _ENABLED, _TRACK_USAGE
     _ENABLED = bool(enabled)
-    _STORE = JSONLBrainStore(base_path=base_path, max_snapshots=max_snapshots)
+    _TRACK_USAGE = bool(track_usage)
+    _STORE = JSONLBrainStore(
+        base_path=base_path,
+        max_snapshots=max_snapshots,
+        dedupe_on_write=dedupe_on_write,
+        dedupe_recent_max=dedupe_recent_max,
+    )
 
     if scorer is not None:
         _SCORER = scorer
@@ -130,7 +140,15 @@ def brain_retrieve(
             scored.append(d)
 
     scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[: max(0, limit)]
+    out = scored[: max(0, limit)]
+
+    if _TRACK_USAGE and out:
+        try:
+            store.log_usage([str(r.get("id", "")) for r in out])
+        except Exception:
+            pass
+
+    return out
 
 
 def checkpoint() -> Dict[str, int]:

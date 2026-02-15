@@ -237,7 +237,10 @@ print(f"总文档数: {stats['total_documents']}")
     "scorer_type": "keyword",
     "max_snapshots": 20,
     "backfill_on_start": false,
-    "backfill_limit": 0
+    "backfill_limit": 0,
+    "dedupe_on_write": false,
+    "dedupe_recent_max": 5000,
+    "track_usage": true
   }
 }
 ```

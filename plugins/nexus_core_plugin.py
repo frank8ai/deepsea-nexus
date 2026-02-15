@@ -95,6 +95,9 @@ class NexusCorePlugin(NexusPlugin):
             brain_max_snapshots = int(brain_cfg.get("max_snapshots", 20))
             brain_backfill_on_start = bool(brain_cfg.get("backfill_on_start", False))
             brain_backfill_limit = int(brain_cfg.get("backfill_limit", 0))
+            brain_dedupe_on_write = bool(brain_cfg.get("dedupe_on_write", False))
+            brain_dedupe_recent_max = int(brain_cfg.get("dedupe_recent_max", 5000))
+            brain_track_usage = bool(brain_cfg.get("track_usage", True))
 
             if self._brain_enabled:
                 try:
@@ -106,6 +109,9 @@ class NexusCorePlugin(NexusPlugin):
                         base_path=str(brain_base_path),
                         scorer_type=brain_scorer_type,
                         max_snapshots=brain_max_snapshots,
+                        dedupe_on_write=brain_dedupe_on_write,
+                        dedupe_recent_max=brain_dedupe_recent_max,
+                        track_usage=brain_track_usage,
                     )
                     self._brain_available = True
                     logger.info("✓ Brain hook enabled")

@@ -47,7 +47,10 @@
     "min_score": 0.2,
     "scorer_type": "keyword",
     "backfill_on_start": false,
-    "backfill_limit": 0
+    "backfill_limit": 0,
+    "dedupe_on_write": false,
+    "dedupe_recent_max": 5000,
+    "track_usage": true
   },
   "optional": {
     "cross_date_search": true,
