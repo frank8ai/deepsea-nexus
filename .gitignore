@@ -40,3 +40,7 @@ memory/
 # ChromaDB vector database
 chroma_db/
 *.sqlite3
+
+# Local dev hooks (runtime)
+hooks/
+
