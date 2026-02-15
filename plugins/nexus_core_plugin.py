@@ -98,6 +98,9 @@ class NexusCorePlugin(NexusPlugin):
             brain_dedupe_on_write = bool(brain_cfg.get("dedupe_on_write", False))
             brain_dedupe_recent_max = int(brain_cfg.get("dedupe_recent_max", 5000))
             brain_track_usage = bool(brain_cfg.get("track_usage", True))
+            brain_decay_on_checkpoint_days = int(brain_cfg.get("decay_on_checkpoint_days", 14))
+            brain_decay_floor = float(brain_cfg.get("decay_floor", 0.1))
+            brain_decay_step = float(brain_cfg.get("decay_step", 0.05))
 
             if self._brain_enabled:
                 try:
@@ -112,6 +115,9 @@ class NexusCorePlugin(NexusPlugin):
                         dedupe_on_write=brain_dedupe_on_write,
                         dedupe_recent_max=brain_dedupe_recent_max,
                         track_usage=brain_track_usage,
+                        decay_on_checkpoint_days=brain_decay_on_checkpoint_days,
+                        decay_floor=brain_decay_floor,
+                        decay_step=brain_decay_step,
                     )
                     self._brain_available = True
                     logger.info("✓ Brain hook enabled")

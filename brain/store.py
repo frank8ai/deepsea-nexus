@@ -39,11 +39,17 @@ class JSONLBrainStore(BrainStore):
         max_snapshots: int = 20,
         dedupe_on_write: bool = False,
         dedupe_recent_max: int = 5000,
+        decay_on_checkpoint_days: int = 14,
+        decay_floor: float = 0.1,
+        decay_step: float = 0.05,
     ) -> None:
         self.base_path = Path(base_path)
         self.max_snapshots = max(1, int(max_snapshots))
         self.dedupe_on_write = bool(dedupe_on_write)
         self.dedupe_recent_max = max(0, int(dedupe_recent_max))
+        self.decay_on_checkpoint_days = max(0, int(decay_on_checkpoint_days))
+        self.decay_floor = max(0.0, float(decay_floor))
+        self.decay_step = max(0.0, float(decay_step))
         self._recent_hashes: "OrderedDict[str, None]" = OrderedDict()
         self.brain_dir = self.base_path / "brain"
         self.snapshots_dir = self.brain_dir / "snapshots"
@@ -123,8 +129,9 @@ class JSONLBrainStore(BrainStore):
             if existing is None or rec.updated_at >= existing.updated_at:
                 deduped[key] = rec
 
-        # Apply usage-based promotion before snapshotting
+        # Apply usage-based promotion and decay before snapshotting
         usage_stats = self._apply_usage(deduped, now_iso)
+        decay_stats = self._apply_decay(deduped, now)
 
         # Write current snapshot
         with self.snapshot_path.open("w", encoding="utf-8") as f:
@@ -161,6 +168,7 @@ class JSONLBrainStore(BrainStore):
             "snapshot_count": len(deduped),
             "compacted_from": appended,
             "usage_updates": usage_stats,
+            "decay_updates": decay_stats,
             "snapshot_path": str(versioned_path),
             "retention_max_snapshots": self.max_snapshots,
             "retention_deleted_versions": deleted_snapshots,
@@ -246,6 +254,40 @@ class JSONLBrainStore(BrainStore):
         if self.usage_path.exists():
             self.usage_path.unlink()
             self.usage_path.touch()
+
+        return {"updated": updated, "skipped": skipped}
+
+    def _apply_decay(self, deduped: Dict[str, BrainRecord], now: datetime) -> Dict[str, int]:
+        if self.decay_on_checkpoint_days <= 0:
+            return {"updated": 0, "skipped": 0}
+
+        updated = 0
+        skipped = 0
+
+        for rec in deduped.values():
+            meta = rec.metadata or {}
+            last_used = meta.get("last_used") or rec.updated_at or rec.created_at
+            try:
+                last_dt = datetime.fromisoformat(str(last_used))
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+            except Exception:
+                skipped += 1
+                continue
+
+            age_days = (now - last_dt).days
+            if age_days < self.decay_on_checkpoint_days:
+                skipped += 1
+                continue
+
+            steps = max(1, age_days // self.decay_on_checkpoint_days)
+            new_decay = max(self.decay_floor, rec.decay - (self.decay_step * steps))
+            if new_decay < rec.decay:
+                rec.decay = new_decay
+                rec.updated_at = now.isoformat()
+                updated += 1
+            else:
+                skipped += 1
 
         return {"updated": updated, "skipped": skipped}
 

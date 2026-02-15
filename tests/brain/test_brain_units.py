@@ -135,6 +135,22 @@ class TestBrainUnits(unittest.TestCase):
             self.assertEqual(out.priority, "P1")
             self.assertGreaterEqual(int(out.metadata.get("usage_count", 0)), 4)
 
+    def test_decay_on_checkpoint(self):
+        with tempfile.TemporaryDirectory() as td:
+            store = JSONLBrainStore(
+                base_path=td,
+                decay_on_checkpoint_days=1,
+                decay_floor=0.1,
+                decay_step=0.05,
+            )
+            rec = BrainRecord(id="d1", kind="fact", priority="P1", source="t", content="old")
+            rec.updated_at = "2020-01-01T00:00:00+00:00"
+            store.write(rec)
+
+            store.checkpoint()
+            out = store.read_all()[0]
+            self.assertLessEqual(out.decay, 0.95)
+
 
 if __name__ == "__main__":
     unittest.main()

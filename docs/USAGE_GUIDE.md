@@ -240,7 +240,10 @@ print(f"总文档数: {stats['total_documents']}")
     "backfill_limit": 0,
     "dedupe_on_write": false,
     "dedupe_recent_max": 5000,
-    "track_usage": true
+    "track_usage": true,
+    "decay_on_checkpoint_days": 14,
+    "decay_floor": 0.1,
+    "decay_step": 0.05
   }
 }
 ```

@@ -24,6 +24,9 @@ def configure_brain(
     dedupe_on_write: bool = False,
     dedupe_recent_max: int = 5000,
     track_usage: bool = True,
+    decay_on_checkpoint_days: int = 14,
+    decay_floor: float = 0.1,
+    decay_step: float = 0.05,
 ) -> None:
     global _STORE, _SCORER, _ENABLED, _TRACK_USAGE
     _ENABLED = bool(enabled)
@@ -33,6 +36,9 @@ def configure_brain(
         max_snapshots=max_snapshots,
         dedupe_on_write=dedupe_on_write,
         dedupe_recent_max=dedupe_recent_max,
+        decay_on_checkpoint_days=decay_on_checkpoint_days,
+        decay_floor=decay_floor,
+        decay_step=decay_step,
     )
 
     if scorer is not None:
