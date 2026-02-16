@@ -22,6 +22,7 @@ Context Engine v2 - 统一的智能上下文引擎
 import json
 import re
 import os
+import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Callable, Tuple
 from dataclasses import dataclass, asdict
@@ -31,6 +32,7 @@ from ..nexus_core import NexusCore
 from .session_manager import SessionManagerPlugin
 from ..core.plugin_system import NexusPlugin, PluginMetadata
 from ..core.event_bus import EventTypes
+from ..compat_async import run_coro_sync
 
 
 # ===================== 数据类 =====================
@@ -168,6 +170,22 @@ class ContextEngine:
         """
         self._nexus_core = nexus_core
         self._lazy_loaded = nexus_core is None
+
+    def _call_nexus(self, method_name: str, *args, **kwargs):
+        core = self.nexus_core
+        if core is None:
+            return None
+        method = getattr(core, method_name, None)
+        if not callable(method):
+            return None
+        try:
+            result = method(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return run_coro_sync(result)
+            return result
+        except Exception as e:
+            print(f"向量库调用失败({method_name}): {e}")
+            return None
     
     @property
     def nexus_core(self) -> NexusCore:
@@ -412,7 +430,8 @@ class ContextEngine:
         
         try:
             # 存储原文
-            self.nexus_core.add_document(
+            self._call_nexus(
+                "add_document",
                 content=reply,
                 title=f"对话 {conversation_id} - 原文",
                 tags=f"type:content,source:{conversation_id}"
@@ -426,7 +445,8 @@ class ContextEngine:
                 if summary.search_keywords:
                     tags += "," + ",".join(summary.search_keywords)
                 
-                self.nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=searchable,
                     title=f"对话 {conversation_id} - 摘要",
                     tags=tags
@@ -434,7 +454,8 @@ class ContextEngine:
                 results["stored_count"] += 1
                 
                 # 元数据
-                self.nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=json.dumps(summary.to_dict(), ensure_ascii=False),
                     title=f"对话 {conversation_id} - 元数据",
                     tags=f"type:metadata,source:{conversation_id}"
@@ -467,7 +488,7 @@ class ContextEngine:
     def _search_vector_store(self, query: str, n: int) -> List[Dict]:
         """搜索向量库"""
         try:
-            results = self.nexus_core.search_recall(query, n=n)
+            results = self._call_nexus("search_recall", query, n) or []
             
             return [
                 {
