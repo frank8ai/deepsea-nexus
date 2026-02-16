@@ -221,7 +221,7 @@ class ContextInjector:
         """检测触发词"""
 ```
 
-**问题**: 依赖 `layered_storage.py` 模块不存在
+**问题**: 旧版本依赖的 `layered_storage.py` 缺失或路径不一致
 
 **解决方案**: 可直接使用 `context_injector.py`，也可用 `nexus_autoinject.py`
 
