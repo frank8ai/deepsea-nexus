@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Config
-PROJECT_DIR="${HOME}/.openclaw/workspace/DEEP_SEA_NEXUS_V2"
+PROJECT_DIR="${OPENCLAW_WORKSPACE:-$HOME/.openclaw/workspace}/DEEP_SEA_NEXUS_V2"
 BACKUP_DIR="${PROJECT_DIR}/backups"
 
 # Parse arguments

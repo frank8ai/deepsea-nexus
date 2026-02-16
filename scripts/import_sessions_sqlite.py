@@ -117,7 +117,10 @@ def main():
     
     # 查找会话目录
     session_dir = os.path.expanduser(
-        "~/.openclaw/workspace/deepsea-nexus/~/.openclaw/workspace/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02"
+        os.path.join(
+            os.environ.get("OPENCLAW_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")),
+            "DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02",
+        )
     )
     
     if os.path.exists(session_dir):

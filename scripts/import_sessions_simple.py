@@ -127,9 +127,11 @@ def main():
     print(f"✅ 向量库连接成功")
     
     # 查找会话目录
+    workspace_root = os.environ.get("OPENCLAW_WORKSPACE", os.path.expanduser("~/.openclaw/workspace"))
+    nexus_root = os.path.join(workspace_root, "DEEP_SEA_NEXUS_V2")
     session_dirs = [
-        os.path.expanduser("~/.openclaw/workspace/deepsea-nexus/~/Library/CloudStorage/GoogleDrive*/frank20170808@gmail.com/其他计算机/我的计算机 (2)/Documents/frank/编程学习/0.01-阿爪独立工作区/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02"),
-        os.path.expanduser("~/.openclaw/workspace/deepsea-nexus/~/.openclaw/workspace/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02"),
+        os.path.expanduser("~/Library/CloudStorage/GoogleDrive*/frank20170808@gmail.com/其他计算机/我的计算机 (2)/Documents/frank/编程学习/0.01-阿爪独立工作区/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02"),
+        os.path.join(nexus_root, "memory/90_Memory/2026-02"),
     ]
     
     all_stats = {'total': 0, 'imported': 0, 'failed': 0}

@@ -42,7 +42,9 @@ nexus.write_session(session_id, "普通对话内容")
 ## 环境变量
 
 ```bash
+# 兼容旧路径（v2），v3 插件系统优先使用 OPENCLAW_WORKSPACE
 NEXUS_PATH=~/.openclaw/workspace/DEEP_SEA_NEXUS_V2
+OPENCLAW_WORKSPACE=~/.openclaw/workspace
 NEXUS_MEMORY=memory/90_Memory
 NEXUS_FLUSH_TIME=03:00
 ```

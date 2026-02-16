@@ -13,7 +13,8 @@ from typing import List, Dict, Any
 
 # 添加 Deep-Sea Nexus 路径
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NEXUS_PATH = os.path.join(PROJECT_ROOT, 'DEEP_SEA_NEXUS_V2')
+WORKSPACE_ROOT = os.environ.get("OPENCLAW_WORKSPACE", os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
+NEXUS_PATH = os.path.join(WORKSPACE_ROOT, 'DEEP_SEA_NEXUS_V2')
 sys.path.insert(0, NEXUS_PATH)
 sys.path.insert(0, os.path.join(NEXUS_PATH, 'src', 'vector_store'))
 sys.path.insert(0, os.path.join(NEXUS_PATH, 'src', 'retrieval'))
@@ -144,10 +145,10 @@ def main():
     # 查找会话目录
     session_dirs = [
         # Deep-Sea Nexus 备份中的会话
-        os.path.join(PROJECT_ROOT, 'DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02'),
-        os.path.join(PROJECT_ROOT, '~/Library/CloudStorage/GoogleDrive*/frank20170808@gmail.com/其他计算机/我的计算机 (2)/Documents/frank/编程学习/0.01-阿爪独立工作区/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02'),
+        os.path.join(NEXUS_PATH, 'memory/90_Memory/2026-02'),
+        os.path.expanduser('~/Library/CloudStorage/GoogleDrive*/frank20170808@gmail.com/其他计算机/我的计算机 (2)/Documents/frank/编程学习/0.01-阿爪独立工作区/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02'),
         # 工作区中的会话
-        os.path.join(PROJECT_ROOT, 'memory/90_Memory/2026-02'),
+        os.path.join(WORKSPACE_ROOT, 'memory/90_Memory/2026-02'),
     ]
     
     all_stats = {

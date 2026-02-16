@@ -123,9 +123,9 @@ def main():
     all_stats = {'total': 0, 'imported': 0, 'failed': 0}
     
     # 1. 导入 2026-02 会话
-    session_dir = os.path.expanduser(
-        "~/.openclaw/workspace/deepsea-nexus/~/.openclaw/workspace/DEEP_SEA_NEXUS_V2/memory/90_Memory/2026-02"
-    )
+    workspace_root = os.environ.get("OPENCLAW_WORKSPACE", os.path.expanduser("~/.openclaw/workspace"))
+    nexus_root = os.path.join(workspace_root, "DEEP_SEA_NEXUS_V2")
+    session_dir = os.path.join(nexus_root, "memory/90_Memory/2026-02")
     if os.path.exists(session_dir):
         print(f"\n📁 导入会话: {session_dir}")
         stats = import_directory(session_dir, conn, "session_*.md", 'session')
