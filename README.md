@@ -364,6 +364,17 @@ cd deepsea-nexus
 python -m pip install -r requirements.txt
 ```
 
+### OpenClaw Hook 快速接入（推荐）
+```bash
+# 使用内置 venv 作为 Hook 的 Python（可选）
+export NEXUS_PYTHON_PATH="$HOME/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python"
+
+# 检查 Hook 状态
+openclaw hooks list
+openclaw hooks info nexus-auto-recall
+openclaw hooks info nexus-auto-save
+```
+
 ### 最小示例
 ```python
 from deepsea_nexus import nexus_init, nexus_recall

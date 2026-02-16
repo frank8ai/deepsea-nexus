@@ -579,13 +579,13 @@ cp -r ~/.openclaw/workspace/memory/.vector_db_backup ~/.openclaw/workspace/memor
 
 **错误**: Hook 未触发
 
-**原因**: OpenClaw 只支持 `command` 事件
+**原因**: Hook handler 未正确导出默认函数、事件类型不匹配或 Python 依赖缺失。
 
-**解决方案**: 使用 cron job 定时保存
+**解决方案**: 使用 `agent:input` / `agent:response` / `agent:output` 事件并确保 Hook 的 Python 路径可用。必要时再加 cron 兜底。
 
 ```bash
 # 添加 cron job
-0 * * * * /Users/yizhi/.openclaw/workspace/.venv-nexus/bin/python \
+0 * * * * /Users/yizhi/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python \
   /Users/yizhi/.openclaw/workspace/skills/deepsea-nexus/scripts/nexus_auto_save.py
 ```
 

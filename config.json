@@ -110,7 +110,9 @@
     "auto_tune_target_tokens": 800,
     "auto_tune_min_items": 2,
     "auto_tune_max_items": 6,
-    "persist_interval_sec": 60
+    "persist_interval_sec": 60,
+    "debug_enabled": false,
+    "debug_max_chars": 220
   },
   "graph": {
     "enabled": true,
