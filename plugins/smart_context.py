@@ -20,6 +20,7 @@ Smart Context - 第二大脑核心子功能
 
 import re
 import json
+import asyncio
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -28,6 +29,7 @@ from ..nexus_core import NexusCore
 from .session_manager import SessionManagerPlugin
 from ..core.plugin_system import NexusPlugin, PluginMetadata
 from ..core.event_bus import EventTypes
+from ..compat_async import run_coro_sync
 
 
 # ===================== 配置 =====================
@@ -235,6 +237,21 @@ class SmartContextPlugin(NexusPlugin):
         self._current_round = round_num
         
         return result
+
+    def _call_nexus(self, method_name: str, *args, **kwargs):
+        if not self._nexus_core:
+            return None
+        method = getattr(self._nexus_core, method_name, None)
+        if not callable(method):
+            return None
+        try:
+            result = method(*args, **kwargs)
+            if asyncio.iscoroutine(result):
+                return run_coro_sync(result)
+            return result
+        except Exception as e:
+            print(f"⚠️ SmartContext: 调用 nexus_core.{method_name} 失败: {e}")
+            return None
     
     def _extract_summary(self, response: str) -> str:
         """
@@ -269,7 +286,8 @@ class SmartContextPlugin(NexusPlugin):
         try:
             if context["status"] == "full":
                 # 完整内容
-                self._nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=context["content"],
                     title=f"对话 {conversation_id} - 轮{round_num} (完整)",
                     tags=f"type:full,round:{round_num},conversation:{conversation_id}"
@@ -277,7 +295,8 @@ class SmartContextPlugin(NexusPlugin):
                 
             elif context["status"] == "summary":
                 # 只存摘要
-                self._nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=f"[摘要] {context['summary']}",
                     title=f"对话 {conversation_id} - 轮{round_num} (摘要)",
                     tags=f"type:summary,round:{round_num},conversation:{conversation_id}"
@@ -285,7 +304,8 @@ class SmartContextPlugin(NexusPlugin):
                 
             else:  # compressed
                 # 压缩存储
-                self._nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=f"[已压缩] {context['summary']}",
                     title=f"对话 {conversation_id} - 轮{round_num} (已压缩)",
                     tags=f"type:compressed,round:{round_num},conversation:{conversation_id}"
@@ -339,7 +359,8 @@ class SmartContextPlugin(NexusPlugin):
         
         try:
             # 存储原文
-            self._nexus_core.add_document(
+            self._call_nexus(
+                "add_document",
                 content=ai_response,
                 title=f"对话 {conversation_id} - 原文",
                 tags=f"type:content,source:{conversation_id}"
@@ -349,7 +370,8 @@ class SmartContextPlugin(NexusPlugin):
             # 存储摘要
             summary = self._extract_summary(ai_response)
             if summary:
-                self._nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=f"[摘要] {summary}",
                     title=f"对话 {conversation_id} - 摘要",
                     tags=f"type:summary,source:{conversation_id}"
@@ -358,7 +380,8 @@ class SmartContextPlugin(NexusPlugin):
             # 存储关键词
             keywords = self.extract_keywords(user_message + " " + ai_response)
             if keywords:
-                self._nexus_core.add_document(
+                self._call_nexus(
+                    "add_document",
                     content=" ".join(keywords),
                     title=f"对话 {conversation_id} - 关键词",
                     tags=f"type:keywords,source:{conversation_id}"
@@ -406,7 +429,7 @@ class SmartContextPlugin(NexusPlugin):
             return []
         
         try:
-            results = self._nexus_core.search_recall(user_message, n=self.config.inject_max_items)
+            results = self._call_nexus("search_recall", user_message, self.config.inject_max_items) or []
             
             filtered = [
                 {
