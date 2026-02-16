@@ -286,6 +286,26 @@ stats = backfill_embeddings(limit=0)  # limit=0 means no limit
 print(stats)
 ```
 
+### Brain lifecycle helpers
+
+Use these to keep the brain store compact and auditable.
+
+```python
+from deepsea_nexus.brain.api import checkpoint, list_versions, rollback
+
+# Compact write-ahead log into a snapshot
+stats = checkpoint()
+print(stats)  # {"version": "...", "snapshot_count": N, "compacted_from": M}
+
+# List available snapshots
+versions = list_versions()
+print(versions[:3])
+
+# Roll back to a specific snapshot
+ok = rollback(versions[0])
+print(ok)
+```
+
 ### 文本切片 API
 
 ```python
