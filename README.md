@@ -387,6 +387,12 @@ python3 scripts/context_metrics_export.py --window 200 --write-html
 # http://127.0.0.1:18789/__openclaw__/canvas/context-metrics.html
 ```
 
+### 自动刷新（每 5 分钟）
+```bash
+*/5 * * * * $HOME/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python \
+  $HOME/.openclaw/workspace/skills/deepsea-nexus/scripts/context_metrics_export.py --window 200 --write-html
+```
+
 ### 低成本模型路由（建议）
 ```bash
 python3 scripts/model_router.py --text "这里是一段简单问题"
