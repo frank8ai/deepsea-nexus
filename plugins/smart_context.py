@@ -62,11 +62,28 @@ class ContextCompressionConfig:
     store_summary_enabled: bool = True
     summary_min_length: int = 50
     compress_on_store: bool = True
+    summary_on_each_turn: bool = True
+    summary_template_enabled: bool = True
+    summary_template_fields: Tuple[str, ...] = (
+        "summary",
+        "decisions",
+        "next_actions",
+        "questions",
+        "entities",
+        "keywords",
+    )
+    topic_switch_enabled: bool = True
+    topic_switch_min_overlap_ratio: float = 0.2
+    topic_switch_keywords_max: int = 8
     
     # 上下文注入规则
     inject_enabled: bool = True
     inject_threshold: float = 0.6
     inject_max_items: int = 3
+    inject_topk_only: bool = True
+    inject_max_chars_per_item: int = 360
+    inject_max_lines_per_item: int = 8
+    inject_max_lines_total: int = 40
     inject_debug: bool = False
     inject_debug_max_chars: int = 200
     inject_mode: str = "balanced"  # conservative | balanced | aggressive
@@ -153,6 +170,7 @@ class SmartContextPlugin(NexusPlugin):
         self._pending_config_updates: Dict[str, Any] = {}
         self._last_persist_ts = 0.0
         self._metrics_path: Optional[str] = None
+        self._last_keywords: List[str] = []
     
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """初始化"""
@@ -178,9 +196,31 @@ class SmartContextPlugin(NexusPlugin):
                     trigger_soft_ratio=smart_cfg.get("trigger_soft_ratio", 0.6),
                     trigger_hard_ratio=smart_cfg.get("trigger_hard_ratio", 0.85),
                     store_summary_enabled=smart_cfg.get("store_summary_enabled", True),
+                    summary_on_each_turn=smart_cfg.get("summary_on_each_turn", True),
+                    summary_template_enabled=smart_cfg.get("summary_template_enabled", True),
+                    summary_template_fields=tuple(
+                        smart_cfg.get(
+                            "summary_template_fields",
+                            [
+                                "summary",
+                                "decisions",
+                                "next_actions",
+                                "questions",
+                                "entities",
+                                "keywords",
+                            ],
+                        )
+                    ),
+                    topic_switch_enabled=smart_cfg.get("topic_switch_enabled", True),
+                    topic_switch_min_overlap_ratio=smart_cfg.get("topic_switch_min_overlap_ratio", 0.2),
+                    topic_switch_keywords_max=smart_cfg.get("topic_switch_keywords_max", 8),
                     inject_enabled=smart_cfg.get("inject_enabled", True),
                     inject_threshold=smart_cfg.get("inject_threshold", 0.6),
                     inject_max_items=smart_cfg.get("inject_max_items", 3),
+                    inject_topk_only=smart_cfg.get("inject_topk_only", True),
+                    inject_max_chars_per_item=smart_cfg.get("inject_max_chars_per_item", 360),
+                    inject_max_lines_per_item=smart_cfg.get("inject_max_lines_per_item", 8),
+                    inject_max_lines_total=smart_cfg.get("inject_max_lines_total", 40),
                     inject_debug=smart_cfg.get("inject_debug", False),
                     inject_debug_max_chars=smart_cfg.get("inject_debug_max_chars", 200),
                     inject_mode=smart_cfg.get("inject_mode", "balanced"),
@@ -396,11 +436,48 @@ class SmartContextPlugin(NexusPlugin):
                 }
             )
         
+        blocks: List[str] = []
+        if self.config.decision_block_enabled:
+            blocks = self._extract_decision_blocks(f"{user_message}\n{ai_response}")
+
+        if self.config.summary_on_each_turn:
+            turn_summary = self._build_turn_summary(
+                user_message,
+                ai_response,
+                blocks if self.config.decision_block_enabled else [],
+            )
+            if turn_summary:
+                if self._nexus_core:
+                    self._call_nexus(
+                        "add_document",
+                        content=turn_summary,
+                        title=f"对话 {conversation_id} - 轮{round_num} (摘要卡)",
+                        tags=f"type:turn_summary,round:{round_num},conversation:{conversation_id}"
+                    )
+                    result["stored"] = True
+                self._append_metrics({"event": "turn_summary", "len": len(turn_summary)})
+
+        if self._detect_topic_switch(user_message):
+            topic_summary = self._build_turn_summary(
+                user_message,
+                ai_response,
+                blocks if self.config.decision_block_enabled else [],
+            )
+            if topic_summary:
+                if self._nexus_core:
+                    self._call_nexus(
+                        "add_document",
+                        content=topic_summary,
+                        title=f"对话 {conversation_id} - 话题切换 (轮{round_num})",
+                        tags=f"type:topic_boundary,round:{round_num},conversation:{conversation_id}"
+                    )
+                    result["stored"] = True
+                self._append_metrics({"event": "topic_switch", "round": round_num})
+
         # 存储
         if self._nexus_core:
             self._store_context(conversation_id, round_num, result)
-            if self.config.decision_block_enabled:
-                blocks = self._extract_decision_blocks(f"{user_message}\n{ai_response}")
+            if blocks:
                 self._store_decision_blocks(conversation_id, round_num, blocks)
             result["stored"] = True
         
@@ -662,6 +739,123 @@ class SmartContextPlugin(NexusPlugin):
             uniq.append(b)
         return uniq[: max(1, int(self.config.decision_block_max))]
 
+    def _extract_actions(self, text: str) -> List[str]:
+        if not text:
+            return []
+        actions: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip(" \t-•")
+            if not line:
+                continue
+            if line.lower().startswith(("todo", "next", "步骤")):
+                actions.append(line)
+                continue
+            if "下一步" in line or "继续" in line:
+                actions.append(line)
+        seen = set()
+        uniq = []
+        for item in actions:
+            if item in seen:
+                continue
+            seen.add(item)
+            uniq.append(item)
+        return uniq[:5]
+
+    def _extract_questions(self, text: str) -> List[str]:
+        if not text:
+            return []
+        questions: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip(" \t-•")
+            if not line:
+                continue
+            if "?" in line or "？" in line:
+                questions.append(line)
+        seen = set()
+        uniq = []
+        for item in questions:
+            if item in seen:
+                continue
+            seen.add(item)
+            uniq.append(item)
+        return uniq[:5]
+
+    def _build_turn_summary(
+        self,
+        user_message: str,
+        ai_response: str,
+        decisions: List[str],
+    ) -> str:
+        summary = self._sanitize_summary(ai_response, ai_response)
+        if not self.config.summary_template_enabled:
+            return summary
+        actions = self._extract_actions(ai_response)
+        questions = self._extract_questions(user_message + "\n" + ai_response)
+        entities = self._extract_key_entities(user_message + "\n" + ai_response)
+        keywords = self.extract_keywords(user_message + " " + ai_response)
+
+        fields = set(self.config.summary_template_fields or ())
+        lines: List[str] = []
+        if "summary" in fields:
+            lines.append(f"Summary: {summary}")
+        if "decisions" in fields and decisions:
+            lines.append(f"Decisions: {'; '.join(decisions[:3])}")
+        if "next_actions" in fields and actions:
+            lines.append(f"Next: {'; '.join(actions[:3])}")
+        if "questions" in fields and questions:
+            lines.append(f"Questions: {'; '.join(questions[:3])}")
+        if "entities" in fields and entities:
+            lines.append(f"Entities: {', '.join(entities[:5])}")
+        if "keywords" in fields and keywords:
+            lines.append(f"Keywords: {', '.join(keywords[:6])}")
+
+        return "\n".join(lines).strip()
+
+    def _detect_topic_switch(self, user_message: str) -> bool:
+        if not self.config.topic_switch_enabled:
+            return False
+        msg = (user_message or "").strip()
+        if any(k in msg for k in ("换个话题", "另一个问题", "新话题", "顺便问", "另外")):
+            return True
+        keywords = self.extract_keywords(msg)[: int(self.config.topic_switch_keywords_max)]
+        if not keywords:
+            return False
+        if not self._last_keywords:
+            self._last_keywords = keywords
+            return False
+        overlap = len(set(keywords) & set(self._last_keywords))
+        ratio = overlap / float(max(1, len(set(keywords))))
+        self._last_keywords = keywords
+        return ratio <= float(self.config.topic_switch_min_overlap_ratio)
+
+    def _trim_injected_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not items:
+            return []
+        max_chars = max(80, int(self.config.inject_max_chars_per_item))
+        max_lines_per = max(2, int(self.config.inject_max_lines_per_item))
+        max_lines_total = max(10, int(self.config.inject_max_lines_total))
+
+        trimmed: List[Dict[str, Any]] = []
+        used_lines = 0
+        for item in items:
+            content = (item.get("content") or "").strip()
+            if not content:
+                continue
+            lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
+            if len(lines) > max_lines_per:
+                lines = lines[:max_lines_per]
+            text = "\n".join(lines)
+            if len(text) > max_chars:
+                text = text[:max_chars].rstrip() + "..."
+            line_count = max(1, text.count("\n") + 1)
+            if used_lines + line_count > max_lines_total:
+                break
+            used_lines += line_count
+            item = dict(item)
+            item["content"] = text
+            trimmed.append(item)
+        return trimmed
+
     def _extract_graph_edges(self, block: str, conversation_id: str) -> List[Dict[str, Any]]:
         if not block:
             return []
@@ -862,6 +1056,14 @@ class SmartContextPlugin(NexusPlugin):
             
             graph_items = self._inject_graph_associations(user_message, reason)
             final = filtered + graph_items
+            if self.config.inject_topk_only:
+                def _score(item: Dict[str, Any]) -> float:
+                    try:
+                        return float(item.get("relevance", 0.0))
+                    except Exception:
+                        return 0.0
+                final = sorted(final, key=_score, reverse=True)[: max(1, int(self.config.inject_max_items))]
+            final = self._trim_injected_items(final)
             graph_ratio = (len(graph_items) / injected) if injected else 0.0
             self._append_metrics(
                 {

@@ -7,6 +7,12 @@
 - ✅ Summary quality guard (entity retention)
 - ✅ NOW.md rescue trimming (top-priority retention)
 
+## Version 4.1.2 (2026-02-16)
+### 🧠 v4.1.2 - Hard Rules for Summary + Top-K Inject
+- ✅ Per-turn summary cards with fixed template fields
+- ✅ Topic switch boundary summaries (anti-context-bleed)
+- ✅ Strict Top-K recall + per-item/total line budget trimming
+
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
 - ✅ Light knowledge graph for decision blocks (SQLite)

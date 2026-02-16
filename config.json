@@ -15,8 +15,8 @@
     "max_line_length": 80
   },
   "project": {
-    "version": "4.0.0",
-    "name": "Deep-Sea Nexus v4.0",
+    "version": "4.1.2",
+    "name": "Deep-Sea Nexus v4.1.2",
     "author": "OpenClaw"
   },
   "session": {
@@ -47,9 +47,26 @@
     "compressed_tokens_max": 2000,
     "trigger_soft_ratio": 0.6,
     "trigger_hard_ratio": 0.85,
+    "summary_on_each_turn": true,
+    "summary_template_enabled": true,
+    "summary_template_fields": [
+      "summary",
+      "decisions",
+      "next_actions",
+      "questions",
+      "entities",
+      "keywords"
+    ],
+    "topic_switch_enabled": true,
+    "topic_switch_min_overlap_ratio": 0.2,
+    "topic_switch_keywords_max": 8,
     "inject_enabled": true,
     "inject_threshold": 0.55,
     "inject_max_items": 4,
+    "inject_topk_only": true,
+    "inject_max_chars_per_item": 360,
+    "inject_max_lines_per_item": 8,
+    "inject_max_lines_total": 40,
     "inject_debug": false,
     "inject_debug_max_chars": 200,
     "inject_mode": "aggressive",
