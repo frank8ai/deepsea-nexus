@@ -125,6 +125,18 @@ class RecallItem:
             self.metadata = {}
 
 
+@dataclass
+class ContextBudget:
+    """上下文预算与拼装规则"""
+    max_tokens: int = 1000
+    max_items: int = 4
+    max_chars_per_item: int = 360
+    max_lines_total: int = 40
+    include_now: bool = True
+    include_recent_summary: bool = True
+    include_memory: bool = True
+
+
 # ===================== 统一的 Context Engine =====================
 
 class ContextEngine:
@@ -559,6 +571,114 @@ class ContextEngine:
         count_bonus = min(len(results) * 0.05, 0.2)
         
         return min(avg_relevance + count_bonus, 1.0)
+
+    # ===================== 预算化上下文拼装 =====================
+
+    def build_context_block(
+        self,
+        user_message: str,
+        memory_items: List[Dict],
+        now_context: str = "",
+        recent_summary: str = "",
+        config: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        budget = self._budget_from_config(config)
+        sections: List[str] = []
+
+        if budget.include_now and now_context:
+            sections.append("## NOW")
+            sections.append(now_context.strip())
+
+        if budget.include_recent_summary and recent_summary:
+            sections.append("## RECENT SUMMARY")
+            sections.append(recent_summary.strip())
+
+        if budget.include_memory and memory_items:
+            sections.append("## RECALL (Top-K)")
+            sections.extend(self._format_recall_items(memory_items, budget))
+
+        if not sections:
+            return ""
+
+        context_text = "\n".join(sections).strip()
+        return self._trim_to_budget(context_text, budget.max_tokens)
+
+    def summarize_recent_messages(self, messages: List[Dict[str, Any]], max_chars: int = 400) -> str:
+        if not messages:
+            return ""
+        parts = []
+        for msg in messages[-4:]:
+            role = (msg.get("role") or "unknown").upper()
+            content = (msg.get("content") or "").strip()
+            if not content:
+                continue
+            parts.append(f"{role}: {content}")
+        if not parts:
+            return ""
+        text = "\n".join(parts)
+        if len(text) > max_chars:
+            text = text[:max_chars].rstrip() + "..."
+        return text
+
+    def _format_recall_items(self, items: List[Dict], budget: ContextBudget) -> List[str]:
+        lines: List[str] = []
+        max_items = max(1, int(budget.max_items))
+        max_chars = max(80, int(budget.max_chars_per_item))
+        max_lines_total = max(10, int(budget.max_lines_total))
+
+        used_lines = 0
+        for idx, item in enumerate(items[:max_items], 1):
+            content = (item.get("content") or "").strip()
+            if not content:
+                continue
+            content = self._trim_lines(content, max_chars)
+            line_count = max(1, content.count("\n") + 1)
+            if used_lines + line_count > max_lines_total:
+                break
+            used_lines += line_count
+            source = item.get("source", "unknown")
+            relevance = item.get("relevance", 0)
+            lines.append(f"[{idx}] ({source} · {relevance:.2f})")
+            lines.append(content)
+        return lines
+
+    def _trim_lines(self, text: str, max_chars: int) -> str:
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        if not lines:
+            return ""
+        text = "\n".join(lines)
+        if len(text) > max_chars:
+            text = text[:max_chars].rstrip() + "..."
+        return text
+
+    def _trim_to_budget(self, text: str, max_tokens: int) -> str:
+        if max_tokens <= 0:
+            return text
+        est = self._estimate_tokens(text)
+        if est <= max_tokens:
+            return text
+        ratio = max_tokens / float(max(est, 1))
+        max_chars = max(200, int(len(text) * ratio))
+        return text[:max_chars].rstrip() + "..."
+
+    def _estimate_tokens(self, text: str) -> int:
+        if not text:
+            return 0
+        return max(1, int(len(text) / 3))
+
+    def _budget_from_config(self, config: Optional[Dict[str, Any]]) -> ContextBudget:
+        cfg = {}
+        if isinstance(config, dict):
+            cfg = config.get("context_engine", {}) or {}
+        return ContextBudget(
+            max_tokens=int(cfg.get("max_tokens", 1000)),
+            max_items=int(cfg.get("max_items", 4)),
+            max_chars_per_item=int(cfg.get("max_chars_per_item", 360)),
+            max_lines_total=int(cfg.get("max_lines_total", 40)),
+            include_now=bool(cfg.get("include_now", True)),
+            include_recent_summary=bool(cfg.get("include_recent_summary", True)),
+            include_memory=bool(cfg.get("include_memory", True)),
+        )
     
     def _generate_summary_prompt(self) -> str:
         """生成摘要提示词"""

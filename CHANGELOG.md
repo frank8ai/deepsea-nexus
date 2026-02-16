@@ -13,6 +13,12 @@
 - ✅ Topic switch boundary summaries (anti-context-bleed)
 - ✅ Strict Top-K recall + per-item/total line budget trimming
 
+## Version 4.1.3 (2026-02-16)
+### 🧠 v4.1.3 - Context Engine Budgeting
+- ✅ ContextEngine budgeted context block (NOW + recent summary + Top-K recall)
+- ✅ Hook integrates ContextEngine for pre-run injection
+- ✅ Configurable budgets via context_engine section
+
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
 - ✅ Light knowledge graph for decision blocks (SQLite)
