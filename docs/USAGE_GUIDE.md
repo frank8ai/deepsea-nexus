@@ -120,6 +120,8 @@ python src/nexus_core.py --recall "列表"
 python src/nexus_core.py --index
 ```
 
+> 提示：如果插件系统已启动，`nexus_core.py` 会优先走插件/compat 路径；未启动时回退为独立脚本模式。
+
 ### 批量索引工具
 
 #### 索引 Obsidian 笔记

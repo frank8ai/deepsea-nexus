@@ -195,11 +195,11 @@ print("摘要:", summary)
 
 ---
 
-### 3. context_injector.py ⚠️ 需要修复
+### 3. context_injector.py ✅ 可用（已兼容）
 
 **功能**: 上下文自动注入、触发词检测
 
-**状态**: ❌ 损坏（依赖 `layered_storage.py` 不存在）
+**状态**: ✅ 可用（优先走 compat/插件链路，缺省回退 layered_storage）
 
 **预期功能**:
 
@@ -223,11 +223,11 @@ class ContextInjector:
 
 **问题**: 依赖 `layered_storage.py` 模块不存在
 
-**解决方案**: 使用 `nexus_autoinject.py` 作为替代
+**解决方案**: 可直接使用 `context_injector.py`，也可用 `nexus_autoinject.py`
 
 ---
 
-### 4. nexus_autoinject.py ⚠️ 部分可用
+### 4. nexus_autoinject.py ✅ 可用（含兼容回退）
 
 **功能**: 通过 socket 连接实现智能记忆注入
 
@@ -512,9 +512,9 @@ else:
 ImportError: cannot import 'layered_storage' from 'deepsea_nexus'
 ```
 
-**原因**: `layered_storage.py` 模块不存在
+**原因**: 旧版本依赖的 `layered_storage.py` 缺失或路径不一致
 
-**解决方案**: 使用 `nexus_autoinject.py` 替代
+**解决方案**: 已加入 compat 回退与可选 layered_storage，直接可用
 
 ```python
 # ❌ 错误
@@ -535,7 +535,7 @@ ConnectionRefusedError: [Errno 61] Connection refused
 
 **原因**: `nexus_warmup.sock` 服务未启动
 
-**解决方案**: 使用 `nexus_core.py` 直接访问
+**解决方案**: 已加入 compat 回退（无 socket 也可正常召回）
 
 ```python
 # ❌ 错误
@@ -597,8 +597,8 @@ cp -r ~/.openclaw/workspace/memory/.vector_db_backup ~/.openclaw/workspace/memor
 |------|------|------|
 | nexus_core.py | ✅ | 恢复向量库 (2,200+ 条) |
 | auto_summary.py | ✅ | 统一摘要格式 |
-| context_injector.py | ❌ | 依赖模块丢失 |
-| nexus_autoinject.py | ⚠️ | 需要 socket 服务 |
+| context_injector.py | ✅ | 兼容回退可用 |
+| nexus_autoinject.py | ✅ | 无 socket 也可用 |
 | hooks_system.py | ⚠️ | OpenClaw 不支持 |
 
 ### v2.0 (2026-02-07)
@@ -616,8 +616,8 @@ cp -r ~/.openclaw/workspace/memory/.vector_db_backup ~/.openclaw/workspace/memor
 |------|------|------|
 | `nexus_core.py` | 核心引擎 | ✅ |
 | `auto_summary.py` | 智能摘要 | ✅ |
-| `nexus_autoinject.py` | 智能注入 | ⚠️ |
-| `context_injector.py` | 上下文注入 | ❌ |
+| `nexus_autoinject.py` | 智能注入 | ✅ |
+| `context_injector.py` | 上下文注入 | ✅ |
 | `auto_recall.py` | 自动召回 | ✅ |
 | `session_manager.py` | 会话管理 | ✅ |
 | `flush_manager.py` | 自动Flush | ✅ |

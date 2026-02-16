@@ -14,7 +14,7 @@ deepsea-nexus/
 │   ├── session_manager.py   # 会话管理
 │   └── flush_manager.py      # 自动清理
 ├── auto_summary.py           # 保留（向后兼容）
-├── context_injector.py       # 保留（向后兼容）
+├── context_injector.py       # 保留（兼容回退）
 └── layered_storage.py        # 保留（依赖）
 ```
 
@@ -72,7 +72,7 @@ related = engine.inject_keywords(conversation)
 | 旧模块 | 新位置 | 状态 |
 |--------|--------|------|
 | `auto_summary.py` | → `plugins/context_engine.py` | ✅ 保留 |
-| `context_injector.py` | → `plugins/context_engine.py` | ✅ 保留 |
+| `context_injector.py` | → `plugins/context_engine.py` | ✅ 保留（含 compat 回退） |
 | `layered_storage.py` | 保持独立 | ✅ 保留 |
 
 ## 使用方式
