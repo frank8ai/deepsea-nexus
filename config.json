@@ -15,8 +15,8 @@
     "max_line_length": 80
   },
   "project": {
-    "version": "4.1.3",
-    "name": "Deep-Sea Nexus v4.1.3",
+    "version": "4.1.4",
+    "name": "Deep-Sea Nexus v4.1.4",
     "author": "OpenClaw"
   },
   "session": {
@@ -103,7 +103,14 @@
     "max_lines_total": 40,
     "include_now": true,
     "include_recent_summary": true,
-    "include_memory": true
+    "include_memory": true,
+    "metrics_enabled": true,
+    "metrics_window": 20,
+    "auto_tune_enabled": true,
+    "auto_tune_target_tokens": 800,
+    "auto_tune_min_items": 2,
+    "auto_tune_max_items": 6,
+    "persist_interval_sec": 60
   },
   "graph": {
     "enabled": true,

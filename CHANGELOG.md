@@ -19,6 +19,12 @@
 - ✅ Hook integrates ContextEngine for pre-run injection
 - ✅ Configurable budgets via context_engine section
 
+## Version 4.1.4 (2026-02-16)
+### 🧠 v4.1.4 - Context Metrics + Auto-Tune
+- ✅ ContextEngine metrics log (tokens/items/lines)
+- ✅ Budget auto-tune based on rolling token usage
+- ✅ Config-persisted tuning with safe interval
+
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
 - ✅ Light knowledge graph for decision blocks (SQLite)

@@ -138,6 +138,32 @@ ContextEngine 统一拼装注入上下文，严格控制 token 预算：
 - 避免“整篇历史”进入 prompt
 - 稳定降低 token 成本，同时提升可控性
 
+---
+
+### 7. Context Engine 指标与自适应（v4.1.4）
+
+ContextEngine 会记录每次注入的预算消耗，并按窗口自动调参：
+
+**指标日志**:
+`/Users/yizhi/.openclaw/workspace/logs/context_engine_metrics.log`
+
+**记录字段**:
+- `context_build`: tokens/lines/items_used
+- `context_stats`: 窗口内均值
+- `context_auto_tune`: 自动调参记录
+
+**自适应默认**（`config.json` -> `context_engine`）:
+- `auto_tune_enabled`: true
+- `auto_tune_target_tokens`: 800
+- `auto_tune_min_items`: 2
+- `auto_tune_max_items`: 6
+- `persist_interval_sec`: 60
+
+**价值**:
+- 自动稳定在目标 token 预算
+- 高峰期减少注入条数，避免成本爆炸
+- 低负载期允许更多 recall 提升准确性
+
 
 ---
 
