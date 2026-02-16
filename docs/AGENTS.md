@@ -1,5 +1,8 @@
 # Deep-Sea Nexus v2.0 集成指南
 
+> 说明：本文为 v2 兼容集成说明（历史文档），vNext 以插件方式运行，推荐使用 `config.json` + `OPENCLAW_WORKSPACE` 路径。
+> 若插件已启动，调用 `nexus_core.py` 会自动走 compat 路径，无需手动切换。
+
 ## 概述
 
 Deep-Sea Nexus v2.0 是一个专为 AI Agent 设计的长期记忆系统，与 OpenClaw 无缝集成。
@@ -48,6 +51,10 @@ OPENCLAW_WORKSPACE=~/.openclaw/workspace
 NEXUS_MEMORY=memory/90_Memory
 NEXUS_FLUSH_TIME=03:00
 ```
+
+## vNext Scorer（可选）
+
+`brain.scorer_type` 支持 `keyword` / `hashed-vector` / `vector`，其中 `vector` 优先使用 sentence-transformers，未安装则自动回退。
 
 ## 示例工作流
 

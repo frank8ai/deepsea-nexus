@@ -1,6 +1,7 @@
 # Deep-Sea Nexus v2.0 使用指南
 
-> AI Agent 长期记忆系统 | 极轻量 | 按需加载 | 零依赖
+> 说明：本文是 v2 兼容指南（历史文档）。vNext 推荐使用插件模式与 `config.json`；`config.yaml` 仍保留用于 legacy 脚本。
+> 核心逻辑零依赖，可选组件（sentence-transformers / chromadb）存在即用、缺失自动降级。
 
 ## 目录
 
@@ -23,7 +24,7 @@ Deep-Sea Nexus v2.0 是一个专为 AI Agent 设计的长期记忆系统，采�
 | 启动加载 | < 300 tokens | 只读索引 |
 | 每轮对话 | < 1000 tokens | 按需加载 |
 | 召回延迟 | < 100ms | 关键词搜索 |
-| 零依赖 | 纯 Python | 标准库实现 |
+| 零依赖 | 纯 Python | 核心标准库实现（可选组件自动降级） |
 
 ### 技术架构
 
@@ -46,11 +47,11 @@ pip3
 ### 2. 安装依赖
 
 ```bash
-cd ~/.openclaw/workspace/DEEP_SEA_NEXUS_V2
+cd ~/.openclaw/workspace/skills/deepsea-nexus
 pip3 install -r requirements.txt
 ```
 
-> 说明：`DEEP_SEA_NEXUS_V2` 为历史目录名，当前项目位于 `~/.openclaw/workspace/skills/deepsea-nexus`，若你使用 v3 插件系统可直接从该目录启动。
+> 说明：`DEEP_SEA_NEXUS_V2` 为历史目录名，当前项目位于 `~/.openclaw/workspace/skills/deepsea-nexus`；插件系统优先使用 `OPENCLAW_WORKSPACE`。
 
 ### 3. 依赖列表
 
@@ -64,26 +65,32 @@ tqdm>=4.65.0
 
 ### 4. 配置说明
 
-编辑 `config.yaml`：
+编辑 `config.json`（推荐）或 `config.yaml`（legacy）：
 
-```yaml
-vector_store:
-  persist_directory: "../memory/.vector_db"
-  collection_name: "deep_sea_nexus_notes"
-  distance_metric: "cosine"
-
-embedding:
-  model_name: "sentence-transformers/all-MiniLM-L6-v2"
-  dimension: 384
-
-chunking:
-  chunk_size: 1000
-  chunk_overlap: 100
-  min_chunk_size: 10
-
-rag:
-  top_k: 5
-  similarity_threshold: 0.5
+```json
+{
+  "vector_store": {
+    "persist_directory": "../memory/.vector_db",
+    "collection_name": "deep_sea_nexus_notes",
+    "distance_metric": "cosine"
+  },
+  "embedding": {
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+    "dimension": 384
+  },
+  "brain": {
+    "scorer_type": "keyword"
+  },
+  "chunking": {
+    "chunk_size": 1000,
+    "chunk_overlap": 100,
+    "min_chunk_size": 10
+  },
+  "rag": {
+    "top_k": 5,
+    "similarity_threshold": 0.5
+  }
+}
 ```
 
 ---

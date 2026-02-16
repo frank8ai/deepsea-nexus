@@ -1,6 +1,7 @@
 """
 Data structures and type definitions for Deep-Sea Nexus v2.0
 """
+import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -67,7 +68,10 @@ class IndexEntry:
 @dataclass
 class NexusConfig:
     """Nexus configuration"""
-    base_path: str = "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2"
+    base_path: str = field(default_factory=lambda: os.path.join(
+        os.environ.get("OPENCLAW_WORKSPACE", os.path.join(os.path.expanduser("~"), ".openclaw", "workspace")),
+        "DEEP_SEA_NEXUS_V2",
+    ))
     memory_path: str = "memory/90_Memory"
     max_index_tokens: int = 300
     max_session_tokens: int = 1000
