@@ -1,13 +1,13 @@
 """
-Deep-Sea Nexus v2.0
-===================
+Deep-Sea Nexus (legacy entrypoint)
+==================================
 
 A vector-based memory system with RAG capabilities for AI agents.
 
 Installation:
     pip install -r requirements.txt
 
-Usage:
+Usage (legacy):
     from DEEP_SEA_NEXUS_V2 import create_nexus
     
     # Initialize
@@ -32,7 +32,10 @@ Modules:
 __version__ = "2.0.0"
 __author__ = "Deep-Sea Nexus Team"
 
-from . import create_nexus, quick_recall
+try:
+    from DEEP_SEA_NEXUS_V2 import create_nexus, quick_recall  # legacy alias
+except Exception:
+    from . import create_nexus, quick_recall
 
 __all__ = [
     "create_nexus",

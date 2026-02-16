@@ -50,6 +50,8 @@ cd ~/.openclaw/workspace/DEEP_SEA_NEXUS_V2
 pip3 install -r requirements.txt
 ```
 
+> 说明：`DEEP_SEA_NEXUS_V2` 为历史目录名，当前项目位于 `~/.openclaw/workspace/skills/deepsea-nexus`，若你使用 v3 插件系统可直接从该目录启动。
+
 ### 3. 依赖列表
 
 ```txt
