@@ -380,6 +380,13 @@ openclaw hooks info nexus-auto-save
 python3 scripts/context_metrics_dashboard.py --window 200 --output ~/.openclaw/workspace/logs/context_metrics_report.md
 ```
 
+### Control UI 指标图表（网关内置 Canvas）
+```bash
+python3 scripts/context_metrics_export.py --window 200 --write-html
+# 打开：
+# http://127.0.0.1:18789/__openclaw__/canvas/context-metrics.html
+```
+
 ### 低成本模型路由（建议）
 ```bash
 python3 scripts/model_router.py --text "这里是一段简单问题"

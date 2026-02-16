@@ -643,6 +643,13 @@ python3 scripts/context_metrics_dashboard.py --window 200 --output ~/.openclaw/w
 - ContextEngine 平均 token / items / lines
 - 话题切换与摘要频率
 
+### Control UI 图表
+```bash
+python3 scripts/context_metrics_export.py --window 200 --write-html
+# 打开：
+# http://127.0.0.1:18789/__openclaw__/canvas/context-metrics.html
+```
+
 ---
 
 ## 许可证

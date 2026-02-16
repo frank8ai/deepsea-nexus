@@ -32,6 +32,7 @@
 - ✅ 动态 Top-K 门控（低信号降注入，高信号提升）
 - ✅ 指标看板脚本（context_metrics_dashboard.py）
 - ✅ 低成本模型路由脚本（model_router.py）
+- ✅ Control UI Canvas 图表（context_metrics_export.py）
 
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
