@@ -1,5 +1,12 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.1.1 (2026-02-16)
+### 🧠 v4.1.1 - Observability + Resilience
+- ✅ SmartContext metrics log (summary/inject/graph/rescue/context status)
+- ✅ Inject hit-rate alerts + auto-tune with persisted config
+- ✅ Summary quality guard (entity retention)
+- ✅ NOW.md rescue trimming (top-priority retention)
+
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
 - ✅ Light knowledge graph for decision blocks (SQLite)

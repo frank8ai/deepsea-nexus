@@ -2,9 +2,9 @@
 
 ## AI Agent 长期记忆系统 - 热插拔架构
 
-**版本**: 3.1.0  
+**版本**: 4.1.1  
 **状态**: ✅ 生产就绪  
-**更新**: 2026-02-13
+**更新**: 2026-02-16
 
 ---
 
@@ -22,6 +22,7 @@
 | 🧠 **结构化摘要 v2.0** | 9字段知识沉淀，让大脑更聪明 | 🆕 v3.1 |
 | 🧩 **v4.0 智能记忆** | 可选真向量 + 召回去重 + 使用度提升 | 🆕 v4.0 |
 | 🧠 **v4.1 组块联想** | 决策块图谱 + 关系注入 + 自我修正 | 🆕 v4.1 |
+| 📈 **v4.1.1 可观测性** | 注入/摘要/抢救指标 + 自愈调参落盘 | 🆕 v4.1.1 |
 
 ---
 
@@ -83,6 +84,28 @@ close_session(session_id)
 - 🏷️ 标签管理
 - 📈 统计信息
 - 🔄 自动归档
+
+---
+
+### 5. 运行观测与自愈调参（v4.1.1）
+
+SmartContext 会持续写入运行指标，便于判断“记忆是否真正命中”与“摘要是否可靠”。
+
+**指标日志位置**:
+```
+/Users/yizhi/.openclaw/workspace/logs/smart_context_metrics.log
+```
+
+**记录事件**:
+- `inject` / `graph_inject` / `inject_stats` / `inject_ratio_alert`
+- `inject_auto_tune`（命中率过低时自动调参）
+- `summary_ok` / `summary_fallback` / `summary_short`
+- `context_status`（summary/compress 触发原因与 token 估算）
+- `rescue_saved`（压缩前抢救计数）
+
+**自动调参落盘**:
+当命中率持续偏低，系统会降低阈值并增加注入条数，并写回 `config.json`（默认 60 秒批量写入）。
+
 
 ---
 
