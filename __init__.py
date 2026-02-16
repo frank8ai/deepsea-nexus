@@ -1,8 +1,11 @@
 """
-Deep-Sea Nexus v4.0
+Deep-Sea Nexus v4.1
 AI Agent Long-term Memory System - Hot-Pluggable Architecture
 
-v4.0 New Features:
+v4.1 New Features:
+- Light knowledge graph for decision blocks
+- Graph + vector hybrid recall
+- Adaptive inject tuning (self-correcting threshold)
 - Optional real embeddings with graceful fallback
 - Usage-aware recall ranking + dedupe
 - Tiered recall + novelty gate for smarter memory
@@ -12,7 +15,7 @@ v4.0 New Features:
 - Enhanced semantic retrieval with keyword indexing
 - JSON-based structured summaries
 
-New API (v4.0 - Recommended):
+New API (v4.1 - Recommended):
     from deepsea_nexus import create_app
     
     app = create_app()
@@ -36,7 +39,7 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================

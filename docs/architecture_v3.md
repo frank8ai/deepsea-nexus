@@ -1,7 +1,7 @@
-# Deep-Sea Nexus v4.0 (built on v3 architecture)
+# Deep-Sea Nexus v4.1 (built on v3 architecture)
 ## Hot-Pluggable Architecture Documentation
 
-**Version:** 4.0.0  
+**Version:** 4.1.0  
 **Status:** Production Ready  
 **Release Date:** February 2026
 
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Deep-Sea Nexus v4.0 builds on the v3 hot-pluggable architecture, keeping 100% backward compatibility while adding smarter memory loops and optional real embeddings.
+Deep-Sea Nexus v4.1 builds on the v3 hot-pluggable architecture, keeping 100% backward compatibility while adding associative memory via a light knowledge graph.
 
 ### Key Features
 - ✅ **Hot-Pluggable Architecture** - Dynamic plugin loading/unloading

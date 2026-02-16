@@ -1,4 +1,4 @@
-# 🧠 Deep-Sea Nexus v4.0
+# 🧠 Deep-Sea Nexus v4.1
 
 ## AI Agent 长期记忆系统 - 热插拔架构
 
@@ -21,6 +21,7 @@
 | 🚀 **v3.2 分层加载** | Token 优化，成本降低 89% | 🆕 [增强] |
 | 🧠 **结构化摘要 v2.0** | 9字段知识沉淀，让大脑更聪明 | 🆕 v3.1 |
 | 🧩 **v4.0 智能记忆** | 可选真向量 + 召回去重 + 使用度提升 | 🆕 v4.0 |
+| 🧠 **v4.1 组块联想** | 决策块图谱 + 关系注入 + 自我修正 | 🆕 v4.1 |
 
 ---
 
@@ -448,6 +449,11 @@ python3 v3_2_enhancement/run.py --demo
 ---
 
 ## 📝 更新日志
+
+### v4.1.0 (2026-02-16)
+- Light knowledge graph for decision blocks (SQLite)
+- Graph + vector hybrid recall injection
+- Adaptive inject tuning (self-correcting threshold)
 
 ### v4.0.0 (2026-02-16)
 - Optional real embeddings with safe fallback

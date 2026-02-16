@@ -1,5 +1,11 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.1.0 (2026-02-16)
+### 🧠 v4.1 - Associative Memory
+- ✅ Light knowledge graph for decision blocks (SQLite)
+- ✅ Graph + vector hybrid recall injection
+- ✅ Adaptive inject tuning (self-correcting threshold)
+
 ## Version 4.0.0 (2026-02-16)
 ### 🧠 v4.0 - Smarter Memory Loop
 - ✅ Optional real embeddings with safe fallback
