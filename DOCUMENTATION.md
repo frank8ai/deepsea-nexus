@@ -583,6 +583,11 @@ cp -r ~/.openclaw/workspace/memory/.vector_db_backup ~/.openclaw/workspace/memor
 
 **解决方案**: 使用 `agent:input` / `agent:response` / `agent:output` 事件并确保 Hook 的 Python 路径可用。必要时再加 cron 兜底。
 
+**推荐配置**:
+```bash
+export NEXUS_PYTHON_PATH="$HOME/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python"
+```
+
 ```bash
 # 添加 cron job
 0 * * * * /Users/yizhi/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python \

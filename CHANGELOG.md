@@ -25,6 +25,12 @@
 - ✅ Budget auto-tune based on rolling token usage
 - ✅ Config-persisted tuning with safe interval
 
+## Version 4.1.5 (2026-02-16)
+### 🧠 v4.1.5 - Signal-Aware Inject
+- ✅ 主题块写入与图谱关联（topic_block）
+- ✅ 注入信号优先级（决策/主题/摘要加权）
+- ✅ 动态 Top-K 门控（低信号降注入，高信号提升）
+
 ## Version 4.1.0 (2026-02-16)
 ### 🧠 v4.1 - Associative Memory
 - ✅ Light knowledge graph for decision blocks (SQLite)

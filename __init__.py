@@ -39,7 +39,7 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "4.1.0"
+__version__ = "4.1.5"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================
