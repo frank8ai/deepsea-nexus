@@ -59,6 +59,8 @@ class ContextCompressionConfig:
     inject_enabled: bool = True
     inject_threshold: float = 0.6
     inject_max_items: int = 3
+    inject_debug: bool = False
+    inject_debug_max_chars: int = 200
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -132,6 +134,10 @@ class SmartContextPlugin(NexusPlugin):
                     compress_after_rounds=smart_cfg.get("compress_after_rounds", 50),
                     store_summary_enabled=smart_cfg.get("store_summary_enabled", True),
                     inject_enabled=smart_cfg.get("inject_enabled", True),
+                    inject_threshold=smart_cfg.get("inject_threshold", 0.6),
+                    inject_max_items=smart_cfg.get("inject_max_items", 3),
+                    inject_debug=smart_cfg.get("inject_debug", False),
+                    inject_debug_max_chars=smart_cfg.get("inject_debug_max_chars", 200),
                 )
             
             print(f"✅ SmartContext 初始化完成 (规则: {self.config.full_rounds}轮完整/{self.config.summary_rounds}轮摘要/{self.config.compress_after_rounds}轮压缩)")
@@ -431,9 +437,13 @@ class SmartContextPlugin(NexusPlugin):
         should_inject, reason = self.should_inject(user_message)
         
         if not should_inject:
+            if self.config.inject_debug:
+                print(f"[SmartContext] INJECT skip reason={reason}")
             return []
         
         if not self._nexus_core:
+            if self.config.inject_debug:
+                print("[SmartContext] INJECT skip nexus_core=missing")
             return []
         
         try:
@@ -448,6 +458,13 @@ class SmartContextPlugin(NexusPlugin):
                 for r in results
                 if r.relevance >= self.config.inject_threshold
             ]
+            if self.config.inject_debug:
+                sources = [r.get("source", "unknown") for r in filtered]
+                sample = (filtered[0]["content"][: self.config.inject_debug_max_chars] if filtered else "")
+                print(
+                    f"[SmartContext] INJECT ok reason={reason} topk={len(filtered)}/{len(results)} "
+                    f"threshold={self.config.inject_threshold} sources={sources} sample={sample!r}"
+                )
             
             return filtered
             

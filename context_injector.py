@@ -111,6 +111,7 @@ class ContextInjector:
         """
         self.storage = layered_storage
         self.prefer_compat = bool(prefer_compat)
+        self.debug_inject = os.environ.get("NEXUS_INJECT_DEBUG", "").lower() in ("1", "true", "yes", "on")
         if self.storage is None and LayeredStorage is not None:
             self.storage = LayeredStorage()
         self.max_tokens = max_tokens
@@ -323,6 +324,8 @@ class ContextInjector:
             try:
                 if nexus_init():
                     results = nexus_recall(query, n=limit)
+                    if self.debug_inject:
+                        print(f"[ContextInjector] AUTO_RECALL triggered: query={query!r} topk={limit} mode=compat")
                     out = []
                     for r in results or []:
                         if MemoryItem is None:

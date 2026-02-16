@@ -38,6 +38,13 @@
       "flush_manager"
     ]
   },
+  "smart_context": {
+    "inject_enabled": true,
+    "inject_threshold": 0.6,
+    "inject_max_items": 3,
+    "inject_debug": false,
+    "inject_debug_max_chars": 200
+  },
   "brain": {
     "enabled": true,
     "base_path": "/Users/yizhi/.openclaw/workspace",
