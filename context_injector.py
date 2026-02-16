@@ -8,21 +8,21 @@
 """
 
 import os
-import sys
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass, asdict
 from enum import Enum
 import re
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 try:
-    from layered_storage import LayeredStorage, MemoryItem, MemoryTier
+    from .layered_storage import LayeredStorage, MemoryItem, MemoryTier
 except Exception:
-    LayeredStorage = None
-    MemoryItem = None
-    MemoryTier = None
+    try:
+        from layered_storage import LayeredStorage, MemoryItem, MemoryTier
+    except Exception:
+        LayeredStorage = None
+        MemoryItem = None
+        MemoryTier = None
 
     class _CompatMemoryTier:
         HOT = "HOT"
@@ -485,16 +485,19 @@ if __name__ == "__main__":
     
     # 添加测试数据
     print("\n添加测试数据...")
-    injector.storage.add(
-        "Python的列表推导式很强大，可以一行代码生成列表。",
-        "Python列表推导式",
-        "python,list"
-    )
-    injector.storage.add(
-        "我们决定使用FastAPI作为Web框架。",
-        "技术选型决定",
-        "fastapi,web,decision"
-    )
+    if injector.storage is not None:
+        injector.storage.add(
+            "Python的列表推导式很强大，可以一行代码生成列表。",
+            "Python列表推导式",
+            "python,list"
+        )
+        injector.storage.add(
+            "我们决定使用FastAPI作为Web框架。",
+            "技术选型决定",
+            "fastapi,web,decision"
+        )
+    else:
+        print("⚠️ LayeredStorage 不可用，跳过本地存储注入测试。")
     
     # 测试会话恢复注入
     print("\n测试会话恢复注入:")
