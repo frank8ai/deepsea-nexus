@@ -20,10 +20,10 @@
 
 ```
 v2.0 (重复)
-├── nexus_core.py        → 删除
-├── context_injector.py  → 删除
-├── nexus_autoinject.py  → 删除
-├── auto_recall.py       → 删除
+├── nexus_core.py        → 保留（兼容入口，优先走插件/compat）
+├── context_injector.py  → 保留（兼容回退）
+├── nexus_autoinject.py  → 保留（无 socket 时走 compat）
+├── auto_recall.py       → 保留（无 socket 时走 compat）
 └── layered_storage.py   → 保留（可能有用）
 
 v3.0 (统一)
@@ -155,14 +155,14 @@ print('✅ 新 API 导入成功')
 确认所有引用更新后，可以删除：
 
 ```bash
-# 确认没有引用后再删除
-rm nexus_core.py          # (保留核心功能部分)
-rm context_injector.py
-rm nexus_autoinject.py
-rm auto_recall.py
+# 如需瘦身，可在确认无旧入口依赖后删除（当前建议保留以兼容）
+# rm nexus_core.py
+# rm context_injector.py
+# rm nexus_autoinject.py
+# rm auto_recall.py
 ```
 
-**注意**: `nexus_core.py` 保留了核心语义搜索功能，不要删除！
+**注意**: 目前默认保留上述文件以兼容旧入口，并已具备 compat 回退。
 
 ---
 

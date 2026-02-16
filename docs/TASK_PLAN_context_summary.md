@@ -99,7 +99,7 @@
 
 ### 2.3 修改向量库存储
 
-**文件**: `skills/deepsea-nexus/nexus_core.py`
+**文件**: `skills/deepsea-nexus/nexus_core.py`（兼容入口，优先走插件/compat）
 
 **改动点**:
 1. 更新 `nexus_add` 支持新字段
