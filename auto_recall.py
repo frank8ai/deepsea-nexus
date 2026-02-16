@@ -85,6 +85,34 @@ def socket_search(query: str, n: int = 5) -> Optional[Dict]:
         return None
 
 
+def _compat_search(query: str, n: int = 5) -> Optional[Dict]:
+    """通过 compat API 搜索（无 socket 时的回退路径）"""
+    try:
+        from .compat import nexus_init, nexus_recall
+    except Exception:
+        try:
+            from compat import nexus_init, nexus_recall
+        except Exception:
+            return None
+
+    if not nexus_init():
+        return None
+
+    results = nexus_recall(query, n)
+    if results is None:
+        return None
+
+    out = []
+    for r in results:
+        out.append({
+            "content": getattr(r, "content", ""),
+            "source": getattr(r, "source", ""),
+            "relevance": getattr(r, "relevance", 0.0),
+            "metadata": getattr(r, "metadata", {}) or {},
+        })
+    return {"query": query, "results": out}
+
+
 # ===================== 直接加载模式 =====================
 WORKSPACE = os.environ.get('OPENCLAW_WORKSPACE', os.path.expanduser('~/.openclaw/workspace'))
 NEXUS_PATH = os.path.join(WORKSPACE, 'deepsea-nexus')
@@ -170,6 +198,8 @@ class AutoRecall:
         
         if trigger:
             result = socket_search(trigger["query"], n)
+            if result is None:
+                result = _compat_search(trigger["query"], n)
             return {
                 "triggered": True,
                 "query": trigger["query"],
@@ -188,6 +218,8 @@ class AutoRecall:
         
         for kw in keywords:
             result = socket_search(kw, n)
+            if result is None:
+                result = _compat_search(kw, n)
             if result and "results" in result:
                 for r in result["results"]:
                     key = r["content"][:100]
@@ -285,6 +317,8 @@ class AutoRecall:
         """从查询中回忆相关内容（兼容旧接口）"""
         if self.use_socket:
             result = socket_search(query, max_results)
+            if result is None:
+                result = _compat_search(query, max_results)
             return result.get("results", []) if result else []
         else:
             if not self.init():

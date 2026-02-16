@@ -32,20 +32,48 @@ SOCKET_PATH = "/tmp/nexus_warmup.sock"
 
 
 def _socket_search(query: str, n: int = 5) -> Optional[Dict]:
-    """通过 socket 搜索"""
+    """通过 socket 搜索，失败则返回 None"""
     try:
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(SOCKET_PATH)
-        
+
         request = json.dumps({"query": query, "n": n})
         client.send(request.encode())
-        
+
         response = client.recv(131072).decode()
         client.close()
-        
+
         return json.loads(response)
-    except Exception as e:
+    except Exception:
         return None
+
+
+def _compat_search(query: str, n: int = 5) -> Optional[Dict]:
+    """通过 compat API 搜索（无 socket 时的回退路径）"""
+    try:
+        from .compat import nexus_init, nexus_recall
+    except Exception:
+        try:
+            from compat import nexus_init, nexus_recall
+        except Exception:
+            return None
+
+    if not nexus_init():
+        return None
+
+    results = nexus_recall(query, n)
+    if results is None:
+        return None
+
+    out = []
+    for r in results:
+        out.append({
+            "content": getattr(r, "content", ""),
+            "source": getattr(r, "source", ""),
+            "relevance": getattr(r, "relevance", 0.0),
+            "metadata": getattr(r, "metadata", {}) or {},
+        })
+    return {"query": query, "results": out}
 
 
 # ===================== 统一触发词检测（已移到 utils/triggers.py） =====================
@@ -73,6 +101,8 @@ def smart_search(user_input: str, n: int = 3) -> Dict[str, Any]:
     
     if trigger:
         result = _socket_search(trigger["query"], n)
+        if result is None:
+            result = _compat_search(trigger["query"], n)
         return {
             "triggered": True,
             "query": trigger["query"],
@@ -93,6 +123,8 @@ def smart_search(user_input: str, n: int = 3) -> Dict[str, Any]:
     
     for kw in keywords:
         result = _socket_search(kw, n)
+        if result is None:
+            result = _compat_search(kw, n)
         if result and "results" in result:
             for r in result["results"]:
                 key = r["content"][:100]
