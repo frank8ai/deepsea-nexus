@@ -61,6 +61,11 @@ class ContextCompressionConfig:
     inject_max_items: int = 3
     inject_debug: bool = False
     inject_debug_max_chars: int = 200
+    inject_mode: str = "balanced"  # conservative | balanced | aggressive
+    association_enabled: bool = True
+    context_starved_min_chars: int = 16
+    decision_block_enabled: bool = True
+    decision_block_max: int = 3
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -138,6 +143,11 @@ class SmartContextPlugin(NexusPlugin):
                     inject_max_items=smart_cfg.get("inject_max_items", 3),
                     inject_debug=smart_cfg.get("inject_debug", False),
                     inject_debug_max_chars=smart_cfg.get("inject_debug_max_chars", 200),
+                    inject_mode=smart_cfg.get("inject_mode", "balanced"),
+                    association_enabled=smart_cfg.get("association_enabled", True),
+                    context_starved_min_chars=smart_cfg.get("context_starved_min_chars", 16),
+                    decision_block_enabled=smart_cfg.get("decision_block_enabled", True),
+                    decision_block_max=smart_cfg.get("decision_block_max", 3),
                 )
             
             print(f"✅ SmartContext 初始化完成 (规则: {self.config.full_rounds}轮完整/{self.config.summary_rounds}轮摘要/{self.config.compress_after_rounds}轮压缩)")
@@ -245,6 +255,9 @@ class SmartContextPlugin(NexusPlugin):
         # 存储
         if self._nexus_core:
             self._store_context(conversation_id, round_num, result)
+            if self.config.decision_block_enabled:
+                blocks = self._extract_decision_blocks(f"{user_message}\n{ai_response}")
+                self._store_decision_blocks(conversation_id, round_num, blocks)
             result["stored"] = True
         
         # 更新历史
@@ -352,6 +365,61 @@ class SmartContextPlugin(NexusPlugin):
         
         keywords = [w for w in words if w not in stop_words and len(w) > 2]
         return list(dict.fromkeys(keywords))[:5]
+
+    def _is_context_starved(self, user_message: str) -> bool:
+        msg = (user_message or "").strip()
+        if len(msg) <= self.config.context_starved_min_chars:
+            return True
+        for kw in ("继续", "接着", "刚才", "上次", "之前", "延续", "帮我继续"):
+            if kw in msg:
+                return True
+        return False
+
+    def _extract_decision_blocks(self, text: str) -> List[str]:
+        if not text:
+            return []
+        blocks: List[str] = []
+
+        json_match = re.search(r'```json\s*\n([\s\S]*?)\n```', text)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                for key in ("本次核心产出", "核心产出", "决策上下文"):
+                    val = data.get(key)
+                    if isinstance(val, str) and val.strip():
+                        blocks.append(val.strip())
+            except json.JSONDecodeError:
+                pass
+
+        decision_keywords = ("决定", "选择", "采用", "使用", "结论", "方案", "策略", "切换", "改为")
+        for raw in text.splitlines():
+            line = raw.strip(" \t-•")
+            if not line:
+                continue
+            if "#GOLD" in line:
+                line = re.sub(r".*#GOLD[:\\s]*", "", line).strip()
+            if any(k in line for k in decision_keywords) and len(line) >= 6:
+                blocks.append(line)
+
+        seen = set()
+        uniq = []
+        for b in blocks:
+            if b in seen:
+                continue
+            seen.add(b)
+            uniq.append(b)
+        return uniq[: max(1, int(self.config.decision_block_max))]
+
+    def _store_decision_blocks(self, conversation_id: str, round_num: int, blocks: List[str]) -> None:
+        if not blocks:
+            return
+        for idx, block in enumerate(blocks, 1):
+            self._call_nexus(
+                "add_document",
+                content=block,
+                title=f"决策块 {conversation_id} - 轮{round_num} ({idx})",
+                tags=f"type:decision_block,round:{round_num},conversation:{conversation_id}"
+            )
     
     def store_conversation(self, 
                           conversation_id: str,
@@ -400,6 +468,10 @@ class SmartContextPlugin(NexusPlugin):
                     title=f"对话 {conversation_id} - 关键词",
                     tags=f"type:keywords,source:{conversation_id}"
                 )
+
+            if self.config.decision_block_enabled:
+                blocks = self._extract_decision_blocks(f"{user_message}\n{ai_response}")
+                self._store_decision_blocks(conversation_id, 0, blocks)
                 
         except Exception as e:
             result["error"] = str(e)
@@ -414,6 +486,9 @@ class SmartContextPlugin(NexusPlugin):
         """
         if not self.config.inject_enabled:
             return False, "disabled"
+
+        if self.config.association_enabled and self._is_context_starved(user_message):
+            return True, "context_starved"
         
         question_patterns = [
             r'怎么', r'如何', r'是什么', r'为什么', r'哪些',
@@ -425,8 +500,16 @@ class SmartContextPlugin(NexusPlugin):
                 return True, "question"
         
         keywords = self.extract_keywords(user_message)
-        if any(k for k in keywords if len(k) > 6):
-            return True, "technical_term"
+        mode = (self.config.inject_mode or "balanced").strip().lower()
+        if mode == "aggressive":
+            if any(k for k in keywords if len(k) > 3):
+                return True, "keyword"
+        elif mode == "conservative":
+            if any(k for k in keywords if len(k) > 8):
+                return True, "technical_term"
+        else:  # balanced
+            if any(k for k in keywords if len(k) > 6):
+                return True, "technical_term"
         
         return False, "none"
     
@@ -447,7 +530,13 @@ class SmartContextPlugin(NexusPlugin):
             return []
         
         try:
-            results = self._call_nexus("search_recall", user_message, self.config.inject_max_items) or []
+            max_items = self.config.inject_max_items
+            threshold = self.config.inject_threshold
+            if reason == "context_starved":
+                max_items = max(1, min(2, max_items))
+                threshold = max(0.0, min(1.0, threshold * 0.85))
+
+            results = self._call_nexus("search_recall", user_message, max_items) or []
             
             filtered = [
                 {
@@ -456,14 +545,14 @@ class SmartContextPlugin(NexusPlugin):
                     "relevance": r.relevance,
                 }
                 for r in results
-                if r.relevance >= self.config.inject_threshold
+                if r.relevance >= threshold
             ]
             if self.config.inject_debug:
                 sources = [r.get("source", "unknown") for r in filtered]
                 sample = (filtered[0]["content"][: self.config.inject_debug_max_chars] if filtered else "")
                 print(
                     f"[SmartContext] INJECT ok reason={reason} topk={len(filtered)}/{len(results)} "
-                    f"threshold={self.config.inject_threshold} sources={sources} sample={sample!r}"
+                    f"threshold={threshold} sources={sources} sample={sample!r}"
                 )
             
             return filtered
@@ -591,6 +680,38 @@ def store_conversation(conversation_id: str, user_message: str, ai_response: str
         keywords = [w for w in words if w not in stop_words and len(w) > 2]
         return list(dict.fromkeys(keywords))[:5]
 
+    def _extract_decisions(text: str) -> List[str]:
+        if not text:
+            return []
+        blocks: List[str] = []
+        json_match = re.search(r'```json\\s*\\n([\\s\\S]*?)\\n```', text)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                for key in ("本次核心产出", "核心产出", "决策上下文"):
+                    val = data.get(key)
+                    if isinstance(val, str) and val.strip():
+                        blocks.append(val.strip())
+            except json.JSONDecodeError:
+                pass
+        decision_keywords = ("决定", "选择", "采用", "使用", "结论", "方案", "策略", "切换", "改为")
+        for raw in text.splitlines():
+            line = raw.strip(" \\t-•")
+            if not line:
+                continue
+            if "#GOLD" in line:
+                line = re.sub(r".*#GOLD[:\\s]*", "", line).strip()
+            if any(k in line for k in decision_keywords) and len(line) >= 6:
+                blocks.append(line)
+        seen = set()
+        uniq = []
+        for b in blocks:
+            if b in seen:
+                continue
+            seen.add(b)
+            uniq.append(b)
+        return uniq[:3]
+
     summary = _extract_summary(ai_response)
     nexus_add(ai_response, f"对话 {conversation_id} - 原文", f"type:content,source:{conversation_id}")
     if summary:
@@ -599,6 +720,10 @@ def store_conversation(conversation_id: str, user_message: str, ai_response: str
     keywords = _extract_keywords(user_message + " " + ai_response)
     if keywords:
         nexus_add(" ".join(keywords), f"对话 {conversation_id} - 关键词", f"type:keywords,source:{conversation_id}")
+
+    decisions = _extract_decisions(user_message + "\\n" + ai_response)
+    for idx, block in enumerate(decisions, 1):
+        nexus_add(block, f"决策块 {conversation_id} - ({idx})", f"type:decision_block,source:{conversation_id}")
 
     return {"stored": True, "conversation_id": conversation_id}
 
