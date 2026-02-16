@@ -486,10 +486,8 @@ Deep-Sea Nexus Team
 
 ## 🔗 链接
 
-- 📖 **文档**: [docs.deepsea-nexus.com](https://docs.deepsea-nexus.com)
-- 💻 **GitHub**: [github.com/deepsea-nexus](https://github.com/deepsea-nexus)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/deepsea-nexus/issues)
-- 💬 **社区**: [Discord](https://discord.gg/deepsea-nexus)
+- 💻 **GitHub**: [frank8ai/deepsea-nexus](https://github.com/frank8ai/deepsea-nexus)
+- 🐛 **Issues**: [Issues](https://github.com/frank8ai/deepsea-nexus/issues)
 
 ---
 

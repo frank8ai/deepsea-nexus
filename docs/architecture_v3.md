@@ -285,10 +285,8 @@ await app.event_bus.publish("my.custom.event", {"key": "value"})
 
 ## Contact & Support
 
-- **Documentation:** [docs.deepsea-nexus.com](https://docs.deepsea-nexus.com)
-- **GitHub:** [github.com/deepsea-nexus](https://github.com/deepsea-nexus)
-- **Issues:** [GitHub Issues](https://github.com/deepsea-nexus/issues)
-- **Community:** [Discord](https://discord.gg/deepsea-nexus)
+- **GitHub:** [frank8ai/deepsea-nexus](https://github.com/frank8ai/deepsea-nexus)
+- **Issues:** [Issues](https://github.com/frank8ai/deepsea-nexus/issues)
 
 ---
 

@@ -108,6 +108,7 @@ class SmartContextPlugin(NexusPlugin):
         )
         self.config = ContextCompressionConfig()
         self._nexus_core = None
+        self._session_manager = None
         self._context_history: List[ConversationContext] = []
         self._current_round = 0
     
@@ -117,6 +118,7 @@ class SmartContextPlugin(NexusPlugin):
             from ..core.plugin_system import get_plugin_registry
             registry = get_plugin_registry()
             self._nexus_core = registry.get("nexus_core")
+            self._session_manager = registry.get("session_manager")
             
             if not self._nexus_core:
                 print("⚠️ SmartContext: nexus_core 未就绪")
@@ -157,7 +159,13 @@ class SmartContextPlugin(NexusPlugin):
         
         从会话管理器获取当前轮数
         """
-        # TODO: 从 session_manager 获取实际轮数
+        if self._session_manager and conversation_id:
+            try:
+                session = self._session_manager.get_session(conversation_id)
+                if session and getattr(session, "chunk_count", 0) > 0:
+                    return int(session.chunk_count)
+            except Exception:
+                pass
         return self._current_round
     
     def should_compress(self, round_num: int) -> Tuple[bool, str]:
