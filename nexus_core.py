@@ -14,6 +14,31 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from functools import lru_cache
 
+# Prefer plugin-based core when available (v3+).
+def _plugin_active() -> bool:
+    try:
+        from .core.plugin_system import get_plugin_registry, PluginState
+        registry = get_plugin_registry()
+        plugin = registry.get("nexus_core")
+        return bool(plugin and plugin.state == PluginState.ACTIVE)
+    except Exception:
+        return False
+
+def _compat_call(fn_name: str, *args, **kwargs):
+    try:
+        from . import compat as _compat
+    except Exception:
+        try:
+            import compat as _compat
+        except Exception:
+            return None
+    func = getattr(_compat, fn_name, None)
+    if not callable(func):
+        return None
+    try:
+        return func(*args, **kwargs)
+    except Exception:
+        return None
 # 添加 Deep-Sea Nexus 路径 (使用 venv-nexus 的 Python)
 SKILL_ROOT = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SKILL_ROOT)  # 修复：直接使用当前目录
@@ -521,6 +546,11 @@ def nexus_init(blocking: bool = False) -> bool:
         blocking: 是否阻塞等待预热完成
     """
     print("[Nexus Hook Debug] Entering nexus_init...")  # Added print
+    if _plugin_active():
+        return True
+    compat_ok = _compat_call("nexus_init")
+    if compat_ok:
+        return True
     nexus = _get_nexus()
     if blocking:
         return nexus.init()
@@ -531,16 +561,28 @@ def nexus_init(blocking: bool = False) -> bool:
 
 def nexus_recall(query: str, n: int = 5) -> List[RecallResult]:
     """语义检索"""
+    if _plugin_active():
+        compat_results = _compat_call("nexus_recall", query, n)
+        if compat_results is not None:
+            return compat_results
     return _get_nexus().search_recall(query, n)
 
 
 def nexus_search(query: str, n: int = 5) -> List[RecallResult]:
     """语义搜索"""
+    if _plugin_active():
+        compat_results = _compat_call("nexus_search", query, n)
+        if compat_results is not None:
+            return compat_results
     return _get_nexus().search(query, n)
 
 
 def nexus_add(content: str, title: str, tags: str = "") -> Optional[str]:
     """添加笔记"""
+    if _plugin_active():
+        compat_result = _compat_call("nexus_add", content, title, tags)
+        if compat_result is not None:
+            return compat_result
     return _get_nexus().add(content, title, tags)
 
 
@@ -658,12 +700,20 @@ def nexus_add_structured_summary(
 def nexus_add_document(content: str, title: str = "", tags: str = "", 
                        note_id: str = None) -> Optional[str]:
     """添加文档（增量索引）"""
+    if _plugin_active():
+        compat_result = _compat_call("nexus_add_document", content, title, tags, note_id)
+        if compat_result is not None:
+            return compat_result
     return _get_nexus().add_document(content, title, tags, note_id)
 
 
 def nexus_add_documents(documents: List[Dict[str, str]], 
                         batch_size: int = 10) -> List[str]:
     """批量添加文档"""
+    if _plugin_active():
+        compat_result = _compat_call("nexus_add_documents", documents, batch_size)
+        if compat_result is not None:
+            return compat_result
     return _get_nexus().add_documents(documents, batch_size)
 
 
@@ -679,11 +729,19 @@ def nexus_decompress_session(compressed_path: str, output_path: str = None) -> s
 
 def nexus_stats() -> Dict[str, Any]:
     """获取统计"""
+    if _plugin_active():
+        compat_result = _compat_call("nexus_stats")
+        if compat_result is not None:
+            return compat_result
     return _get_nexus().stats()
 
 
 def nexus_health() -> Dict[str, Any]:
     """健康检查"""
+    if _plugin_active():
+        compat_result = _compat_call("nexus_health")
+        if compat_result is not None:
+            return compat_result
     return _get_nexus().health()
 
 
