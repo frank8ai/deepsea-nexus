@@ -70,6 +70,11 @@ class ContextCompressionConfig:
     graph_inject_enabled: bool = True
     graph_max_items: int = 3
     graph_evidence_max_chars: int = 120
+    adaptive_enabled: bool = True
+    adaptive_min_threshold: float = 0.35
+    adaptive_max_threshold: float = 0.75
+    adaptive_step: float = 0.03
+    adaptive_window: int = 40
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -123,6 +128,7 @@ class SmartContextPlugin(NexusPlugin):
         self._context_history: List[ConversationContext] = []
         self._current_round = 0
         self._graph_enabled = False
+        self._inject_history: List[Dict[str, Any]] = []
     
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """初始化"""
@@ -156,6 +162,11 @@ class SmartContextPlugin(NexusPlugin):
                     graph_inject_enabled=smart_cfg.get("graph_inject_enabled", True),
                     graph_max_items=smart_cfg.get("graph_max_items", 3),
                     graph_evidence_max_chars=smart_cfg.get("graph_evidence_max_chars", 120),
+                    adaptive_enabled=smart_cfg.get("adaptive_enabled", True),
+                    adaptive_min_threshold=smart_cfg.get("adaptive_min_threshold", 0.35),
+                    adaptive_max_threshold=smart_cfg.get("adaptive_max_threshold", 0.75),
+                    adaptive_step=smart_cfg.get("adaptive_step", 0.03),
+                    adaptive_window=smart_cfg.get("adaptive_window", 40),
                 )
             graph_cfg = config.get("graph", {}) if isinstance(config.get("graph", {}), dict) else {}
             self._graph_enabled = bool(graph_cfg.get("enabled", False))
@@ -612,11 +623,50 @@ class SmartContextPlugin(NexusPlugin):
                 )
             
             graph_items = self._inject_graph_associations(user_message, reason)
-            return filtered + graph_items
+            final = filtered + graph_items
+            self._record_inject_event(reason, len(final))
+            return final
             
         except Exception as e:
             print(f"⚠️ 记忆注入失败: {e}")
             return []
+
+    def _record_inject_event(self, reason: str, injected_count: int) -> None:
+        if not self.config.adaptive_enabled:
+            return
+        self._inject_history.append(
+            {
+                "reason": reason,
+                "count": int(injected_count),
+            }
+        )
+        if len(self._inject_history) >= int(self.config.adaptive_window):
+            self._tune_adaptive()
+
+    def _tune_adaptive(self) -> None:
+        if not self._inject_history:
+            return
+        window = int(self.config.adaptive_window)
+        if window <= 0:
+            return
+        recent = self._inject_history[-window:]
+        success = sum(1 for r in recent if r.get("count", 0) > 0)
+        ratio = success / float(len(recent))
+
+        step = float(self.config.adaptive_step)
+        new_threshold = self.config.inject_threshold
+        if ratio < 0.35:
+            new_threshold = min(self.config.adaptive_max_threshold, self.config.inject_threshold + step)
+        elif ratio > 0.7:
+            new_threshold = max(self.config.adaptive_min_threshold, self.config.inject_threshold - step)
+
+        if new_threshold != self.config.inject_threshold:
+            if self.config.inject_debug:
+                print(
+                    f"[SmartContext] ADAPT threshold {self.config.inject_threshold:.2f} -> {new_threshold:.2f} "
+                    f"(ratio={ratio:.2f}, window={len(recent)})"
+                )
+            self.config.inject_threshold = new_threshold
 
     def _inject_graph_associations(self, user_message: str, reason: str) -> List[Dict]:
         if not (self._graph_enabled and self.config.graph_inject_enabled):

@@ -51,7 +51,12 @@
     "decision_block_max": 5,
     "graph_inject_enabled": true,
     "graph_max_items": 3,
-    "graph_evidence_max_chars": 120
+    "graph_evidence_max_chars": 120,
+    "adaptive_enabled": true,
+    "adaptive_min_threshold": 0.35,
+    "adaptive_max_threshold": 0.75,
+    "adaptive_step": 0.03,
+    "adaptive_window": 40
   },
   "graph": {
     "enabled": true,
