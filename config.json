@@ -50,6 +50,10 @@
     "decision_block_enabled": true,
     "decision_block_max": 5
   },
+  "graph": {
+    "enabled": true,
+    "db_path": "/Users/yizhi/.openclaw/workspace/brain/graph.sqlite3"
+  },
   "brain": {
     "enabled": true,
     "base_path": "/Users/yizhi/.openclaw/workspace",

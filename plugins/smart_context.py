@@ -30,6 +30,7 @@ from .session_manager import SessionManagerPlugin
 from ..core.plugin_system import NexusPlugin, PluginMetadata
 from ..core.event_bus import EventTypes
 from ..compat_async import run_coro_sync
+from ..brain.graph_api import configure_graph, graph_add_edge
 
 
 # ===================== 配置 =====================
@@ -118,6 +119,7 @@ class SmartContextPlugin(NexusPlugin):
         self._session_manager = None
         self._context_history: List[ConversationContext] = []
         self._current_round = 0
+        self._graph_enabled = False
     
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """初始化"""
@@ -148,6 +150,14 @@ class SmartContextPlugin(NexusPlugin):
                     context_starved_min_chars=smart_cfg.get("context_starved_min_chars", 16),
                     decision_block_enabled=smart_cfg.get("decision_block_enabled", True),
                     decision_block_max=smart_cfg.get("decision_block_max", 3),
+                )
+            graph_cfg = config.get("graph", {}) if isinstance(config.get("graph", {}), dict) else {}
+            self._graph_enabled = bool(graph_cfg.get("enabled", False))
+            if self._graph_enabled:
+                configure_graph(
+                    enabled=True,
+                    base_path=config.get("paths", {}).get("base", "."),
+                    db_path=graph_cfg.get("db_path"),
                 )
             
             print(f"✅ SmartContext 初始化完成 (规则: {self.config.full_rounds}轮完整/{self.config.summary_rounds}轮摘要/{self.config.compress_after_rounds}轮压缩)")
@@ -410,6 +420,33 @@ class SmartContextPlugin(NexusPlugin):
             uniq.append(b)
         return uniq[: max(1, int(self.config.decision_block_max))]
 
+    def _extract_graph_edges(self, block: str, conversation_id: str) -> List[Dict[str, Any]]:
+        if not block:
+            return []
+        subj = f"conversation:{conversation_id}" if conversation_id else "workspace"
+        edges: List[Dict[str, Any]] = []
+        patterns = [
+            (r"(使用|采用|选择|改为|切换到)\s*([\\w\\-./]+)", "uses"),
+            (r"(依赖|基于)\s*([\\w\\-./]+)", "depends_on"),
+            (r"(目标|目的)[:：]\\s*([^，。]+)", "goal"),
+            (r"(影响|导致)\\s*([^，。]+)", "impacts"),
+        ]
+        for pattern, rel in patterns:
+            match = re.search(pattern, block)
+            if match:
+                obj = match.group(2).strip()
+                if 2 <= len(obj) <= 80:
+                    edges.append(
+                        {
+                            "subj": subj,
+                            "rel": rel,
+                            "obj": obj,
+                            "weight": 1.0,
+                            "entity_types": {"subj": "conversation", "obj": "concept"},
+                        }
+                    )
+        return edges[: self.config.decision_block_max]
+
     def _store_decision_blocks(self, conversation_id: str, round_num: int, blocks: List[str]) -> None:
         if not blocks:
             return
@@ -420,6 +457,19 @@ class SmartContextPlugin(NexusPlugin):
                 title=f"决策块 {conversation_id} - 轮{round_num} ({idx})",
                 tags=f"type:decision_block,round:{round_num},conversation:{conversation_id}"
             )
+            if self._graph_enabled:
+                for edge in self._extract_graph_edges(block, conversation_id):
+                    graph_add_edge(
+                        subj=edge["subj"],
+                        rel=edge["rel"],
+                        obj=edge["obj"],
+                        weight=edge.get("weight", 1.0),
+                        source=f"decision_block:{conversation_id}",
+                        evidence_text=block,
+                        conversation_id=conversation_id,
+                        round_num=round_num,
+                        entity_types=edge.get("entity_types"),
+                    )
     
     def store_conversation(self, 
                           conversation_id: str,
