@@ -1,6 +1,6 @@
 {
   "paths": {
-    "base": "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2",
+    "base": "/Users/yizhi/.openclaw/workspace",
     "archive_monthly": "memory/90_Memory/YYYY-MM",
     "inbox": "memory/00_Inbox",
     "memory": "memory/90_Memory"
@@ -15,8 +15,8 @@
     "max_line_length": 80
   },
   "project": {
-    "version": "2.0.0",
-    "name": "Deep-Sea Nexus v2.0",
+    "version": "4.0.0",
+    "name": "Deep-Sea Nexus v4.0",
     "author": "OpenClaw"
   },
   "session": {
@@ -39,22 +39,22 @@
     ]
   },
   "brain": {
-    "enabled": false,
+    "enabled": true,
     "base_path": "/Users/yizhi/.openclaw/workspace",
     "max_snapshots": 20,
     "merge": "append",
     "mode": "facts",
     "min_score": 0.2,
-    "scorer_type": "keyword",
+    "scorer_type": "vector",
     "backfill_on_start": false,
     "backfill_limit": 0,
-    "dedupe_on_write": false,
+    "dedupe_on_write": true,
     "dedupe_recent_max": 5000,
     "track_usage": true,
     "decay_on_checkpoint_days": 14,
     "decay_floor": 0.1,
     "decay_step": 0.05,
-    "tiered_recall": false,
+    "tiered_recall": true,
     "tiered_order": ["P0", "P1", "P2"],
     "tiered_limits": [3, 2, 1],
     "dedupe_on_recall": true
