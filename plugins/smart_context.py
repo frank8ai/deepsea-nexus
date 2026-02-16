@@ -30,7 +30,7 @@ from .session_manager import SessionManagerPlugin
 from ..core.plugin_system import NexusPlugin, PluginMetadata
 from ..core.event_bus import EventTypes
 from ..compat_async import run_coro_sync
-from ..brain.graph_api import configure_graph, graph_add_edge
+from ..brain.graph_api import configure_graph, graph_add_edge, graph_related_with_evidence
 
 
 # ===================== 配置 =====================
@@ -67,6 +67,9 @@ class ContextCompressionConfig:
     context_starved_min_chars: int = 16
     decision_block_enabled: bool = True
     decision_block_max: int = 3
+    graph_inject_enabled: bool = True
+    graph_max_items: int = 3
+    graph_evidence_max_chars: int = 120
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -150,6 +153,9 @@ class SmartContextPlugin(NexusPlugin):
                     context_starved_min_chars=smart_cfg.get("context_starved_min_chars", 16),
                     decision_block_enabled=smart_cfg.get("decision_block_enabled", True),
                     decision_block_max=smart_cfg.get("decision_block_max", 3),
+                    graph_inject_enabled=smart_cfg.get("graph_inject_enabled", True),
+                    graph_max_items=smart_cfg.get("graph_max_items", 3),
+                    graph_evidence_max_chars=smart_cfg.get("graph_evidence_max_chars", 120),
                 )
             graph_cfg = config.get("graph", {}) if isinstance(config.get("graph", {}), dict) else {}
             self._graph_enabled = bool(graph_cfg.get("enabled", False))
@@ -605,11 +611,46 @@ class SmartContextPlugin(NexusPlugin):
                     f"threshold={threshold} sources={sources} sample={sample!r}"
                 )
             
-            return filtered
+            graph_items = self._inject_graph_associations(user_message, reason)
+            return filtered + graph_items
             
         except Exception as e:
             print(f"⚠️ 记忆注入失败: {e}")
             return []
+
+    def _inject_graph_associations(self, user_message: str, reason: str) -> List[Dict]:
+        if not (self._graph_enabled and self.config.graph_inject_enabled):
+            return []
+        if reason not in {"context_starved", "question", "technical_term", "keyword"}:
+            return []
+
+        keywords = self.extract_keywords(user_message)
+        if not keywords:
+            return []
+
+        max_items = max(1, int(self.config.graph_max_items))
+        evidence_max = max(0, int(self.config.graph_evidence_max_chars))
+        out: List[Dict] = []
+        for kw in keywords[: max_items]:
+            edges = graph_related_with_evidence(kw, limit=max_items, evidence_limit=1)
+            for e in edges:
+                ev = ""
+                evidence = e.get("evidence") or []
+                if evidence:
+                    ev = (evidence[0].get("text") or "")[:evidence_max]
+                content = f"{e.get('subj')} {e.get('rel')} {e.get('obj')}"
+                if ev:
+                    content = f"{content} | 证据: {ev}"
+                out.append(
+                    {
+                        "content": content,
+                        "source": "graph",
+                        "relevance": e.get("weight", 1.0),
+                    }
+                )
+        if self.config.inject_debug and out:
+            print(f"[SmartContext] GRAPH inject count={len(out)} keywords={keywords[:max_items]}")
+        return out[: max_items]
     
     def generate_context_prompt(self, user_message: str) -> str:
         """

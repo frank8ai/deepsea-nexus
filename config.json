@@ -48,7 +48,10 @@
     "association_enabled": true,
     "context_starved_min_chars": 8,
     "decision_block_enabled": true,
-    "decision_block_max": 5
+    "decision_block_max": 5,
+    "graph_inject_enabled": true,
+    "graph_max_items": 3,
+    "graph_evidence_max_chars": 120
   },
   "graph": {
     "enabled": true,

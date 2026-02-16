@@ -141,6 +141,19 @@ class GraphStore:
             )
         return out
 
+    def evidence_for_edge(self, edge_id: int, limit: int = 1) -> List[Dict]:
+        if not edge_id:
+            return []
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, text, source, created_at FROM evidence WHERE edge_id = ? ORDER BY id DESC LIMIT ?",
+                (int(edge_id), int(limit)),
+            ).fetchall()
+        return [
+            {"id": r[0], "text": r[1], "source": r[2], "created_at": r[3]}
+            for r in rows
+        ]
+
     def related(self, entity: str, limit: int = 20) -> List[Dict]:
         if not entity:
             return []

@@ -65,3 +65,13 @@ def graph_related(entity: str, limit: int = 20) -> List[Dict]:
     if not _GRAPH_ENABLED or _GRAPH is None:
         return []
     return _GRAPH.related(entity, limit=limit)
+
+
+def graph_related_with_evidence(entity: str, limit: int = 20, evidence_limit: int = 1) -> List[Dict]:
+    if not _GRAPH_ENABLED or _GRAPH is None:
+        return []
+    edges = _GRAPH.related(entity, limit=limit)
+    for edge in edges:
+        edge_id = edge.get("id")
+        edge["evidence"] = _GRAPH.evidence_for_edge(edge_id, limit=evidence_limit)
+    return edges
