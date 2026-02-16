@@ -632,6 +632,19 @@ export NEXUS_PYTHON_PATH="$HOME/.openclaw/workspace/skills/deepsea-nexus/.venv-3
 
 ---
 
+## 指标看板（Context Metrics）
+
+```bash
+python3 scripts/context_metrics_dashboard.py --window 200 --output ~/.openclaw/workspace/logs/context_metrics_report.md
+```
+
+输出包含：
+- Inject 命中率与平均注入量
+- ContextEngine 平均 token / items / lines
+- 话题切换与摘要频率
+
+---
+
 ## 许可证
 
 MIT

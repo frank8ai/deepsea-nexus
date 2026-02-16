@@ -375,6 +375,16 @@ openclaw hooks info nexus-auto-recall
 openclaw hooks info nexus-auto-save
 ```
 
+### 运行指标看板（低成本可观测）
+```bash
+python3 scripts/context_metrics_dashboard.py --window 200 --output ~/.openclaw/workspace/logs/context_metrics_report.md
+```
+
+### 低成本模型路由（建议）
+```bash
+python3 scripts/model_router.py --text "这里是一段简单问题"
+```
+
 ### 最小示例
 ```python
 from deepsea_nexus import nexus_init, nexus_recall

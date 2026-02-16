@@ -155,5 +155,13 @@
     "rag_enabled": true,
     "mcp_enabled": false,
     "vector_store": true
+  },
+  "routing": {
+    "enabled": true,
+    "light_model": "sub2api/gpt-5.2",
+    "heavy_model": "sub2api/gpt-5.3-codex",
+    "code_model": "sub2api/gpt-5.3-codex-x-high",
+    "light_max_chars": 600,
+    "code_keywords": ["代码", "bug", "报错", "堆栈", "traceback", "stack", "test", "refactor", "compile", "build"]
   }
 }
