@@ -538,26 +538,63 @@ class SmartContextPlugin(NexusPlugin):
 
 def store_conversation(conversation_id: str, user_message: str, ai_response: str) -> Dict:
     """存储对话摘要（便捷函数）"""
-    from ..nexus_core import NexusCore
-    
-    nexus = NexusCore()
-    if not nexus.init():
-        return {"error": "nexus init failed"}
-    
-    # TODO: 使用插件实例
+    from ..compat import nexus_init, nexus_add
+
+    if not nexus_init():
+        return {"error": "nexus init failed", "stored": False}
+
+    def _extract_summary(text: str) -> str:
+        json_match = re.search(r'```json\\s*\\n([\\s\\S]*?)\\n```', text)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                return data.get("本次核心产出", data.get("核心产出", ""))
+            except json.JSONDecodeError:
+                pass
+        summary_match = re.search(r'## 📋 总结[^\\n]*\\n([\\s\\S]*?)(?=\\n\\n|$)', text)
+        if summary_match:
+            return summary_match.group(1).strip()
+        return (text or "")[:100].strip()
+
+    def _extract_keywords(text: str) -> List[str]:
+        words = re.findall(r'\\b\\w+\\b', text.lower())
+        stop_words = {
+            '的', '了', '是', '在', '我', '你', '他', '这', '那',
+            '和', '就', '都', '也', '会', '可以', '什么', '怎么',
+            '如何', '有没有', '是不是', '能不能'
+        }
+        keywords = [w for w in words if w not in stop_words and len(w) > 2]
+        return list(dict.fromkeys(keywords))[:5]
+
+    summary = _extract_summary(ai_response)
+    nexus_add(ai_response, f"对话 {conversation_id} - 原文", f"type:content,source:{conversation_id}")
+    if summary:
+        nexus_add(f"[摘要] {summary}", f"对话 {conversation_id} - 摘要", f"type:summary,source:{conversation_id}")
+
+    keywords = _extract_keywords(user_message + " " + ai_response)
+    if keywords:
+        nexus_add(" ".join(keywords), f"对话 {conversation_id} - 关键词", f"type:keywords,source:{conversation_id}")
+
     return {"stored": True, "conversation_id": conversation_id}
 
 
 def inject_memory_context(user_message: str) -> str:
     """注入记忆上下文（便捷函数）"""
-    from ..nexus_core import NexusCore
-    
-    nexus = NexusCore()
-    if not nexus.init():
+    from ..compat import nexus_init, nexus_recall
+
+    if not nexus_init():
         return ""
-    
-    # TODO: 使用插件实例
-    return ""
+
+    results = nexus_recall(user_message, n=3)
+    if not results:
+        return ""
+
+    parts = ["## 相关记忆", ""]
+    for i, r in enumerate(results, 1):
+        parts.append(f"【{i}】({r.source} - {getattr(r, 'relevance', 0):.2f})")
+        parts.append((r.content or "")[:200])
+        parts.append("")
+    return "\n".join(parts)
 
 
 # ===================== 向后兼容 =====================

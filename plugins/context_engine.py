@@ -30,7 +30,7 @@ from enum import Enum
 
 from ..nexus_core import NexusCore
 from .session_manager import SessionManagerPlugin
-from ..core.plugin_system import NexusPlugin, PluginMetadata
+from ..core.plugin_system import NexusPlugin, PluginMetadata, PluginState, get_plugin_registry
 from ..core.event_bus import EventTypes
 from ..compat_async import run_coro_sync
 
@@ -192,6 +192,16 @@ class ContextEngine:
         """懒加载 NexusCore"""
         if self._nexus_core is None:
             if self._lazy_loaded:
+                try:
+                    registry = get_plugin_registry()
+                    plugin = registry.get("nexus_core")
+                    if plugin and plugin.state == PluginState.ACTIVE:
+                        self._nexus_core = plugin
+                        self._lazy_loaded = False
+                        return self._nexus_core
+                except Exception:
+                    pass
+
                 self._nexus_core = NexusCore()
                 self._nexus_core.init()
                 self._lazy_loaded = False
