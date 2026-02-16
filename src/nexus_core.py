@@ -19,6 +19,11 @@ from threading import Lock
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
+# Base path fallback for legacy v2 defaults.
+_DEFAULT_BASE = os.path.join(
+    os.environ.get("OPENCLAW_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")),
+    "DEEP_SEA_NEXUS_V2",
+)
 # Import local modules (fallback to built-in types if not available)
 try:
     from .config import NexusConfig
@@ -36,7 +41,7 @@ except ImportError:
             elif key == "index.max_session_tokens":
                 return 1000
             elif key == "paths.base":
-                return os.path.expanduser("~/.openclaw/workspace/DEEP_SEA_NEXUS_V2")
+                return _DEFAULT_BASE
             elif key == "paths.memory":
                 return "memory/90_Memory"
             return default
@@ -100,16 +105,16 @@ class NexusCore:
         today = datetime.now().strftime("%Y-%m-%d")
         
         dirs = [
-            self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")),
-            os.path.join(self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")), 
+            self.config.get("paths.base", _DEFAULT_BASE),
+            os.path.join(self.config.get("paths.base", _DEFAULT_BASE), 
                         self.config.get("paths.memory", "memory/90_Memory")),
-            os.path.join(self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")), 
+            os.path.join(self.config.get("paths.base", _DEFAULT_BASE), 
                         self.config.get("paths.memory", "memory/90_Memory"), today),
-            os.path.join(self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")), 
+            os.path.join(self.config.get("paths.base", _DEFAULT_BASE), 
                         self.config.get("paths.memory", "memory/90_Memory"), today[:7]),  # YYYY-MM
-            os.path.join(self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")), 
+            os.path.join(self.config.get("paths.base", _DEFAULT_BASE), 
                         "memory/00_Inbox"),
-            os.path.join(self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2")), 
+            os.path.join(self.config.get("paths.base", _DEFAULT_BASE), 
                         "memory/10_Projects"),
         ]
         
@@ -120,7 +125,7 @@ class NexusCore:
     def _ensure_today_index(self):
         """Ensure today's index file exists"""
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         index_file = os.path.join(today_dir, "_INDEX.md")
@@ -171,7 +176,7 @@ _(no topics)_
         
         if auto_create:
             today = now.strftime("%Y-%m-%d")
-            base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+            base_path = self.config.get("paths.base", _DEFAULT_BASE)
             memory_path = self.config.get("paths.memory", "memory/90_Memory")
             today_dir = os.path.join(base_path, memory_path, today)
             session_file = os.path.join(today_dir, "session_%s.md" % session_id)
@@ -210,7 +215,7 @@ created: %s
             bool: Success
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         session_file = os.path.join(today_dir, "session_%s.md" % session_id)
@@ -262,7 +267,7 @@ created: %s
             max_tokens = self.config.get("index.max_session_tokens", 1000)
         
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         session_file = os.path.join(today_dir, "session_%s.md" % session_id)
@@ -283,7 +288,7 @@ created: %s
     def get_active_session(self):
         """Get currently active session"""
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/.openclaw/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         
@@ -312,7 +317,7 @@ created: %s
         Core method: Ensure < 300 tokens
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         index_file = os.path.join(base_path, memory_path, today, "_INDEX.md")
         
@@ -333,7 +338,7 @@ created: %s
     
     def _add_session_to_index(self, session_id, topic, timestamp):
         """Add session to index"""
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today = datetime.now().strftime("%Y-%m-%d")
         index_file = os.path.join(base_path, memory_path, today, "_INDEX.md")
@@ -371,7 +376,7 @@ created: %s
     
     def _add_gold_key(self, session_id, content):
         """Add GOLD key to index"""
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today = datetime.now().strftime("%Y-%m-%d")
         index_file = os.path.join(base_path, memory_path, today, "_INDEX.md")
@@ -415,7 +420,7 @@ created: %s
             List[RecallResult]: Search results from archives
         """
         results = []
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         
         # Search past days
@@ -487,7 +492,7 @@ created: %s
         
         # Step 3: Load relevant content
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         
@@ -734,7 +739,7 @@ created: %s
         results.extend(today_results)
         
         # Search historical indexes
-        base_path = self.config.get("paths.base", os.path.expanduser("~/.openclaw/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         
         for i in range(1, days):
@@ -799,7 +804,7 @@ created: %s
             bool: Success
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         index_file = os.path.join(base_path, memory_path, today, "_INDEX.md")
         
@@ -830,7 +835,7 @@ created: %s
             Dict: Flush statistics
         """
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         
@@ -867,7 +872,7 @@ created: %s
     def get_stats(self):
         """Get system statistics"""
         today = datetime.now().strftime("%Y-%m-%d")
-        base_path = self.config.get("paths.base", os.path.expanduser("~/workspace/DEEP_SEA_NEXUS_V2"))
+        base_path = self.config.get("paths.base", _DEFAULT_BASE)
         memory_path = self.config.get("paths.memory", "memory/90_Memory")
         today_dir = os.path.join(base_path, memory_path, today)
         
