@@ -1,6 +1,6 @@
-# Deep-Sea Nexus v2.0 使用指南
+# Deep-Sea Nexus v4.0 使用指南
 
-> 说明：本文是 v2 兼容指南（历史文档）。vNext 推荐使用插件模式与 `config.json`；`config.yaml` 仍保留用于 legacy 脚本。
+> 说明：本文保留 v2 兼容说明，同时已适配 v4.0（插件模式优先，`config.json` 推荐）。
 > 核心逻辑零依赖，可选组件（sentence-transformers / chromadb）存在即用、缺失自动降级。
 
 ## 目录

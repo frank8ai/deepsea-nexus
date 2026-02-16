@@ -274,9 +274,12 @@ health = nexus_health()
 
 ## 🚀 快速开始
 
-### 安装
+### 安装（本地）
+> 当前版本为 v4.0，未发布到 PyPI。请使用源码安装。
 ```bash
-pip install deepsea-nexus==3.0.0
+git clone https://github.com/frank8ai/deepsea-nexus.git
+cd deepsea-nexus
+python -m pip install -r requirements.txt
 ```
 
 ### 最小示例
@@ -295,6 +298,11 @@ results = nexus_recall("Python 装饰器", n=3)
 for r in results:
     print(f"[{r.relevance:.2f}] {r.content}")
 ```
+
+### v4.0 新特性说明
+- 可选真向量（sentence-transformers）与自动回退
+- 使用度驱动的召回排序 + 去重
+- 分层召回 + 新颖度闸门（防止历史噪声）
 
 ### 新 API 示例
 ```python
