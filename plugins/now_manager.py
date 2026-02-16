@@ -45,6 +45,9 @@ class NOWManager:
     def __init__(self, path: str = None):
         self.path = path or os.path.expanduser("~/.openclaw/workspace/NOW.md")
         self.state = self._load()
+        self.decisions_max = 10
+        self.next_actions_max = 10
+        self.open_questions_max = 10
     
     def _load(self) -> Dict:
         """加载状态"""
@@ -274,7 +277,7 @@ class NOWManager:
             for d in extracted["decisions"]:
                 if d not in existing:
                     existing.append(d)
-            self.state["decisions"] = existing
+            self.state["decisions"] = self._trim_list(existing, self.decisions_max)
             result["decisions_rescued"] = len(extracted["decisions"])
         
         if extracted["goals"]:
@@ -282,7 +285,7 @@ class NOWManager:
             for g in extracted["goals"]:
                 if g not in existing:
                     existing.append(g)
-            self.state["next_actions"] = existing
+            self.state["next_actions"] = self._trim_list(existing, self.next_actions_max)
             result["goals_rescued"] = len(extracted["goals"])
         
         if extracted["questions"]:
@@ -290,7 +293,7 @@ class NOWManager:
             for q in extracted["questions"]:
                 if q not in existing:
                     existing.append(q)
-            self.state["open_questions"] = existing
+            self.state["open_questions"] = self._trim_list(existing, self.open_questions_max)
             result["questions_rescued"] = len(extracted["questions"])
         
         # 保存
@@ -299,6 +302,17 @@ class NOWManager:
             result["saved"] = True
         
         return result
+
+    def _trim_list(self, items: List[str], max_items: int) -> List[str]:
+        if not items:
+            return []
+        deduped = []
+        for item in items:
+            if item not in deduped:
+                deduped.append(item)
+        if max_items <= 0:
+            return deduped
+        return deduped[-max_items:]
     
     def report(self) -> str:
         """生成报告"""

@@ -39,6 +39,14 @@
     ]
   },
   "smart_context": {
+    "full_rounds": 8,
+    "summary_rounds": 30,
+    "compress_after_rounds": 50,
+    "full_tokens_max": 8000,
+    "summary_tokens_max": 3000,
+    "compressed_tokens_max": 2000,
+    "trigger_soft_ratio": 0.6,
+    "trigger_hard_ratio": 0.85,
     "inject_enabled": true,
     "inject_threshold": 0.55,
     "inject_max_items": 4,
@@ -56,7 +64,20 @@
     "adaptive_min_threshold": 0.35,
     "adaptive_max_threshold": 0.75,
     "adaptive_step": 0.03,
-    "adaptive_window": 40
+    "adaptive_window": 40,
+    "inject_stats_enabled": true,
+    "inject_stats_window": 20,
+    "inject_ratio_alert_enabled": true,
+    "inject_ratio_alert_threshold": 0.15,
+    "inject_ratio_alert_streak": 2,
+    "inject_ratio_auto_tune": true,
+    "inject_ratio_auto_tune_step": 0.05,
+    "inject_ratio_auto_tune_max_items": 6,
+    "inject_persist_interval_sec": 60,
+    "rescue_enabled": true,
+    "rescue_gold": true,
+    "rescue_decisions": true,
+    "rescue_next_actions": true
   },
   "graph": {
     "enabled": true,

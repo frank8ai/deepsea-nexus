@@ -21,6 +21,7 @@ Smart Context - 第二大脑核心子功能
 import re
 import json
 import asyncio
+import os
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -50,6 +51,12 @@ class ContextCompressionConfig:
     full_rounds: int = 8          # 完整保留最近 8 轮 (编程需要更多上下文)
     summary_rounds: int = 20      # 超过 20 轮只保留摘要 (保留关键决策)
     compress_after_rounds: int = 35  # 超过 35 轮压缩 (长任务归档)
+    # token 规则（估算值，非模型真实 token）
+    full_tokens_max: int = 8000
+    summary_tokens_max: int = 3000
+    compressed_tokens_max: int = 2000
+    trigger_soft_ratio: float = 0.6
+    trigger_hard_ratio: float = 0.85
     
     # 摘要存储规则
     store_summary_enabled: bool = True
@@ -75,6 +82,17 @@ class ContextCompressionConfig:
     adaptive_max_threshold: float = 0.75
     adaptive_step: float = 0.03
     adaptive_window: int = 40
+
+    # 注入统计
+    inject_stats_enabled: bool = True
+    inject_stats_window: int = 50
+    inject_ratio_alert_enabled: bool = True
+    inject_ratio_alert_threshold: float = 0.15
+    inject_ratio_alert_streak: int = 2
+    inject_ratio_auto_tune: bool = True
+    inject_ratio_auto_tune_step: float = 0.05
+    inject_ratio_auto_tune_max_items: int = 6
+    inject_persist_interval_sec: int = 60
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -129,6 +147,12 @@ class SmartContextPlugin(NexusPlugin):
         self._current_round = 0
         self._graph_enabled = False
         self._inject_history: List[Dict[str, Any]] = []
+        self._inject_stats: List[Dict[str, Any]] = []
+        self._inject_ratio_streak = 0
+        self._config_path: Optional[str] = None
+        self._pending_config_updates: Dict[str, Any] = {}
+        self._last_persist_ts = 0.0
+        self._metrics_path: Optional[str] = None
     
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """初始化"""
@@ -148,6 +172,11 @@ class SmartContextPlugin(NexusPlugin):
                     full_rounds=smart_cfg.get("full_rounds", 8),
                     summary_rounds=smart_cfg.get("summary_rounds", 30),
                     compress_after_rounds=smart_cfg.get("compress_after_rounds", 50),
+                    full_tokens_max=smart_cfg.get("full_tokens_max", 8000),
+                    summary_tokens_max=smart_cfg.get("summary_tokens_max", 3000),
+                    compressed_tokens_max=smart_cfg.get("compressed_tokens_max", 2000),
+                    trigger_soft_ratio=smart_cfg.get("trigger_soft_ratio", 0.6),
+                    trigger_hard_ratio=smart_cfg.get("trigger_hard_ratio", 0.85),
                     store_summary_enabled=smart_cfg.get("store_summary_enabled", True),
                     inject_enabled=smart_cfg.get("inject_enabled", True),
                     inject_threshold=smart_cfg.get("inject_threshold", 0.6),
@@ -167,6 +196,19 @@ class SmartContextPlugin(NexusPlugin):
                     adaptive_max_threshold=smart_cfg.get("adaptive_max_threshold", 0.75),
                     adaptive_step=smart_cfg.get("adaptive_step", 0.03),
                     adaptive_window=smart_cfg.get("adaptive_window", 40),
+                    inject_stats_enabled=smart_cfg.get("inject_stats_enabled", True),
+                    inject_stats_window=smart_cfg.get("inject_stats_window", 50),
+                    inject_ratio_alert_enabled=smart_cfg.get("inject_ratio_alert_enabled", True),
+                    inject_ratio_alert_threshold=smart_cfg.get("inject_ratio_alert_threshold", 0.15),
+                    inject_ratio_alert_streak=smart_cfg.get("inject_ratio_alert_streak", 2),
+                    inject_ratio_auto_tune=smart_cfg.get("inject_ratio_auto_tune", True),
+                    inject_ratio_auto_tune_step=smart_cfg.get("inject_ratio_auto_tune_step", 0.05),
+                    inject_ratio_auto_tune_max_items=smart_cfg.get("inject_ratio_auto_tune_max_items", 6),
+                    inject_persist_interval_sec=smart_cfg.get("inject_persist_interval_sec", 60),
+                    rescue_enabled=smart_cfg.get("rescue_enabled", True),
+                    rescue_gold=smart_cfg.get("rescue_gold", True),
+                    rescue_decisions=smart_cfg.get("rescue_decisions", True),
+                    rescue_next_actions=smart_cfg.get("rescue_next_actions", True),
                 )
             graph_cfg = config.get("graph", {}) if isinstance(config.get("graph", {}), dict) else {}
             self._graph_enabled = bool(graph_cfg.get("enabled", False))
@@ -176,6 +218,8 @@ class SmartContextPlugin(NexusPlugin):
                     base_path=config.get("paths", {}).get("base", "."),
                     db_path=graph_cfg.get("db_path"),
                 )
+            self._metrics_path = self._resolve_metrics_path(config)
+            self._config_path = self._resolve_config_path()
             
             print(f"✅ SmartContext 初始化完成 (规则: {self.config.full_rounds}轮完整/{self.config.summary_rounds}轮摘要/{self.config.compress_after_rounds}轮压缩)")
             return True
@@ -220,11 +264,53 @@ class SmartContextPlugin(NexusPlugin):
         """
         if round_num <= self.config.full_rounds:
             return False, "full"  # 最近 N 轮完整保留
-        
+
         if round_num <= self.config.summary_rounds:
             return True, "summary"  # 中间的轮数只保留摘要
-        
+
         return True, "compress"  # 更早的轮数压缩
+
+    def _estimate_tokens(self, text: str) -> int:
+        if not text:
+            return 0
+        return max(1, int(len(text) / 3))
+
+    def _context_token_usage(self) -> Dict[str, int]:
+        usage = {"full": 0, "summary": 0, "compressed": 0}
+        for ctx in self._context_history:
+            content = ctx.content or ""
+            if ctx.status == "summary":
+                content = ctx.summary or content
+            elif ctx.status == "compressed":
+                content = ctx.summary or content
+            usage[ctx.status] = usage.get(ctx.status, 0) + self._estimate_tokens(content)
+        return usage
+
+    def _decide_status_with_tokens(self, round_num: int, token_estimate: int) -> Tuple[str, str]:
+        should_compress, reason = self.should_compress(round_num)
+        status = "summary" if should_compress and reason == "summary" else "compress" if should_compress else "full"
+
+        usage = self._context_token_usage()
+        budget_total = self.config.full_tokens_max + self.config.summary_tokens_max + self.config.compressed_tokens_max
+        current_total = sum(usage.values()) + token_estimate
+
+        if budget_total > 0:
+            if current_total >= budget_total * float(self.config.trigger_hard_ratio):
+                status = "compress"
+                reason = "token_hard"
+            elif current_total >= budget_total * float(self.config.trigger_soft_ratio) and round_num > self.config.full_rounds:
+                status = "summary"
+                reason = "token_soft"
+
+        if status == "full" and usage["full"] + token_estimate > int(self.config.full_tokens_max):
+            status = "summary"
+            reason = "full_tokens_max"
+
+        if status == "summary" and usage["summary"] + token_estimate > int(self.config.summary_tokens_max):
+            status = "compress"
+            reason = "summary_tokens_max"
+
+        return status, reason
     
     # ===================== 上下文处理 =====================
     
@@ -256,16 +342,18 @@ class SmartContextPlugin(NexusPlugin):
             "status": "unknown",
             "stored": False,
         }
-        
-        should_compress, reason = self.should_compress(round_num)
-        
-        if reason == "full":
+
+        token_estimate = self._estimate_tokens(f"{user_message}\n{ai_response}")
+        status, reason = self._decide_status_with_tokens(round_num, token_estimate)
+        usage_snapshot = self._context_token_usage()
+
+        if status == "full":
             # 完整保留
             result["status"] = "full"
-            result["content"] = ai_response
+            result["content"] = f"{user_message}\n{ai_response}"
             result["compressed"] = False
             
-        elif reason == "summary":
+        elif status == "summary":
             # 只保留摘要
             result["status"] = "summary"
             summary = self._extract_summary(ai_response)
@@ -278,6 +366,35 @@ class SmartContextPlugin(NexusPlugin):
             summary = self._extract_summary(ai_response)
             result["summary"] = summary
             result["compressed"] = True
+            rescue_result = self.rescue_before_compress(f"{user_message}\n{ai_response}")
+            result["rescue"] = rescue_result
+            if rescue_result.get("saved"):
+                self._append_metrics(
+                    {
+                        "event": "rescue_saved",
+                        "decisions": rescue_result.get("decisions_rescued", 0),
+                        "goals": rescue_result.get("goals_rescued", 0),
+                        "questions": rescue_result.get("questions_rescued", 0),
+                    }
+                )
+                print(
+                    "[SmartContext] RESCUE before compress "
+                    f"decisions={rescue_result.get('decisions_rescued', 0)} "
+                    f"goals={rescue_result.get('goals_rescued', 0)} "
+                    f"questions={rescue_result.get('questions_rescued', 0)}"
+                )
+        if status in {"summary", "compressed"}:
+            self._append_metrics(
+                {
+                    "event": "context_status",
+                    "status": status,
+                    "reason": reason,
+                    "token_estimate": int(token_estimate),
+                    "full_tokens": int(usage_snapshot.get("full", 0)),
+                    "summary_tokens": int(usage_snapshot.get("summary", 0)),
+                    "compressed_tokens": int(usage_snapshot.get("compressed", 0)),
+                }
+            )
         
         # 存储
         if self._nexus_core:
@@ -289,6 +406,16 @@ class SmartContextPlugin(NexusPlugin):
         
         # 更新历史
         self._current_round = round_num
+        self._context_history.append(
+            ConversationContext(
+                round_num=round_num,
+                status=result["status"],
+                content=result.get("content", ""),
+                created_at=datetime.now().isoformat(),
+                summary=result.get("summary", ""),
+                compressed=bool(result.get("compressed")),
+            )
+        )
         
         return result
 
@@ -306,6 +433,54 @@ class SmartContextPlugin(NexusPlugin):
         except Exception as e:
             print(f"⚠️ SmartContext: 调用 nexus_core.{method_name} 失败: {e}")
             return None
+
+    def _resolve_metrics_path(self, config: Dict[str, Any]) -> str:
+        base_path = config.get("paths", {}).get("base", ".")
+        base_path = os.path.expanduser(base_path)
+        log_dir = os.path.join(base_path, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        return os.path.join(log_dir, "smart_context_metrics.log")
+
+    def _resolve_config_path(self) -> str:
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        return os.path.join(base_dir, "config.json")
+
+    def _append_metrics(self, payload: Dict[str, Any]) -> None:
+        if not self._metrics_path:
+            return
+        try:
+            payload.setdefault("ts", datetime.now().isoformat())
+            with open(self._metrics_path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        except Exception:
+            return
+
+    def _persist_smart_context_config(self, updates: Dict[str, Any]) -> None:
+        if not updates:
+            return
+        self._pending_config_updates.update(updates)
+
+    def _flush_pending_config_updates(self) -> None:
+        if not self._config_path or not self._pending_config_updates:
+            return
+        now_ts = datetime.now().timestamp()
+        interval = max(10, int(self.config.inject_persist_interval_sec))
+        if now_ts - self._last_persist_ts < interval:
+            return
+        try:
+            if not os.path.exists(self._config_path):
+                return
+            with open(self._config_path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            smart_cfg = data.get("smart_context", {})
+            smart_cfg.update(self._pending_config_updates)
+            data["smart_context"] = smart_cfg
+            with open(self._config_path, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps(data, ensure_ascii=False, indent=2))
+            self._pending_config_updates = {}
+            self._last_persist_ts = now_ts
+        except Exception:
+            return
     
     def _extract_summary(self, response: str) -> str:
         """
@@ -328,10 +503,60 @@ class SmartContextPlugin(NexusPlugin):
         # ## 📋 总结 格式
         summary_match = re.search(r'## 📋 总结[^\n]*\n([\s\S]*?)(?=\n\n|$)', response)
         if summary_match:
-            return summary_match.group(1).strip()
+            return self._sanitize_summary(summary_match.group(1).strip(), response)
         
         # 默认摘要
-        return response[:100].strip() + "..."
+        return self._sanitize_summary(response[:200].strip(), response)
+
+    def _sanitize_summary(self, summary: str, fallback: str) -> str:
+        summary = (summary or "").strip()
+        summary = re.sub(r'```[\s\S]*?```', '', summary).strip()
+        if summary.endswith("...") and len(summary) < 10:
+            summary = summary[:-3].strip()
+        min_len = max(20, int(self.config.summary_min_length / 2))
+        entities = self._extract_key_entities(fallback)
+        if len(summary) >= min_len:
+            summary = self._append_entities(summary, entities)
+            self._append_metrics({"event": "summary_ok", "len": len(summary)})
+            return summary
+        fallback_text = re.sub(r'```[\s\S]*?```', '', (fallback or "")).strip()
+        if not fallback_text:
+            self._append_metrics({"event": "summary_short", "len": len(summary)})
+            return summary
+        rebuilt = (fallback_text[:200] + ("..." if len(fallback_text) > 200 else "")).strip()
+        rebuilt = self._append_entities(rebuilt, entities)
+        self._append_metrics({"event": "summary_fallback", "len": len(rebuilt)})
+        return rebuilt
+
+    def _extract_key_entities(self, text: str) -> List[str]:
+        if not text:
+            return []
+        candidates = []
+        for match in re.findall(r'([A-Za-z0-9_./\\-]+\\.[A-Za-z0-9]+)', text):
+            candidates.append(match)
+        for match in re.findall(r'\\b[A-Za-z_][A-Za-z0-9_]{2,}\\(\\)', text):
+            candidates.append(match)
+        cleaned = []
+        for item in candidates:
+            if len(item) < 4 or len(item) > 120:
+                continue
+            lowered = item.lower()
+            if lowered.startswith(("sk-", "nvapi-", "ghp_")):
+                continue
+            if re.search(r'[A-Za-z0-9]{20,}', item):
+                continue
+            if item not in cleaned:
+                cleaned.append(item)
+        return cleaned[:5]
+
+    def _append_entities(self, summary: str, entities: List[str]) -> str:
+        if not entities:
+            return summary
+        missing = [e for e in entities if e not in summary]
+        if not missing:
+            return summary
+        suffix = " 关键项: " + ", ".join(missing[:5])
+        return (summary + suffix).strip()
     
     def _store_context(self, conversation_id: str, round_num: int, context: Dict):
         """
@@ -621,10 +846,33 @@ class SmartContextPlugin(NexusPlugin):
                     f"[SmartContext] INJECT ok reason={reason} topk={len(filtered)}/{len(results)} "
                     f"threshold={threshold} sources={sources} sample={sample!r}"
                 )
+            retrieved = len(results)
+            injected = len(filtered)
+            ratio = (injected / retrieved) if retrieved else 0.0
+            self._append_metrics(
+                {
+                    "event": "inject",
+                    "reason": reason,
+                    "retrieved": retrieved,
+                    "injected": injected,
+                    "ratio": round(ratio, 3),
+                    "threshold": round(float(threshold), 3),
+                }
+            )
             
             graph_items = self._inject_graph_associations(user_message, reason)
             final = filtered + graph_items
+            graph_ratio = (len(graph_items) / injected) if injected else 0.0
+            self._append_metrics(
+                {
+                    "event": "graph_inject",
+                    "reason": reason,
+                    "graph_injected": len(graph_items),
+                    "graph_ratio": round(graph_ratio, 3),
+                }
+            )
             self._record_inject_event(reason, len(final))
+            self._record_inject_stats(reason, len(results), len(filtered), len(graph_items), threshold)
             return final
             
         except Exception as e:
@@ -642,6 +890,109 @@ class SmartContextPlugin(NexusPlugin):
         )
         if len(self._inject_history) >= int(self.config.adaptive_window):
             self._tune_adaptive()
+
+    def _record_inject_stats(
+        self,
+        reason: str,
+        retrieved: int,
+        injected: int,
+        graph_injected: int,
+        threshold: float,
+    ) -> None:
+        if not self.config.inject_stats_enabled:
+            return
+        self._inject_stats.append(
+            {
+                "reason": reason,
+                "retrieved": int(retrieved),
+                "injected": int(injected),
+                "graph": int(graph_injected),
+                "ratio": round((injected / retrieved), 3) if retrieved else 0.0,
+                "threshold": round(float(threshold), 3),
+            }
+        )
+        window = int(self.config.inject_stats_window)
+        if window <= 0 or len(self._inject_stats) < window:
+            return
+        recent = self._inject_stats[-window:]
+        count = len(recent)
+        total_retrieved = sum(r.get("retrieved", 0) for r in recent)
+        total_injected = sum(r.get("injected", 0) for r in recent)
+        total_graph = sum(r.get("graph", 0) for r in recent)
+        avg_ratio = (total_injected / total_retrieved) if total_retrieved else 0.0
+        self._append_metrics(
+            {
+                "event": "inject_stats",
+                "window": count,
+                "retrieved": total_retrieved,
+                "injected": total_injected,
+                "graph_injected": total_graph,
+                "avg_ratio": round(avg_ratio, 3),
+            }
+        )
+        self._maybe_alert_inject_ratio(avg_ratio, count)
+
+    def _maybe_alert_inject_ratio(self, avg_ratio: float, window: int) -> None:
+        if not self.config.inject_ratio_alert_enabled:
+            return
+        threshold = float(self.config.inject_ratio_alert_threshold)
+        if avg_ratio < threshold:
+            self._inject_ratio_streak += 1
+        else:
+            self._inject_ratio_streak = 0
+        if self._inject_ratio_streak >= int(self.config.inject_ratio_alert_streak):
+            self._append_metrics(
+                {
+                    "event": "inject_ratio_alert",
+                    "avg_ratio": round(avg_ratio, 3),
+                    "threshold": round(threshold, 3),
+                    "window": int(window),
+                    "streak": int(self._inject_ratio_streak),
+                }
+            )
+            if self.config.inject_debug:
+                print(
+                    f"[SmartContext] ALERT inject ratio low avg={avg_ratio:.2f} "
+                    f"threshold={threshold:.2f} window={window}"
+                )
+        if self.config.inject_ratio_auto_tune:
+            self._auto_tune_inject(avg_ratio)
+        self._flush_pending_config_updates()
+
+    def _auto_tune_inject(self, avg_ratio: float) -> None:
+        step = float(self.config.inject_ratio_auto_tune_step)
+        if avg_ratio <= 0 and step <= 0:
+            return
+        old_threshold = float(self.config.inject_threshold)
+        new_threshold = max(self.config.adaptive_min_threshold, old_threshold - step)
+        if new_threshold != old_threshold:
+            self.config.inject_threshold = new_threshold
+        old_max_items = int(self.config.inject_max_items)
+        max_cap = int(self.config.inject_ratio_auto_tune_max_items)
+        new_max_items = min(max_cap, max(old_max_items, old_max_items + 1))
+        if new_max_items != old_max_items:
+            self.config.inject_max_items = new_max_items
+        self._append_metrics(
+            {
+                "event": "inject_auto_tune",
+                "avg_ratio": round(avg_ratio, 3),
+                "threshold_before": round(old_threshold, 3),
+                "threshold_after": round(float(self.config.inject_threshold), 3),
+                "max_items_before": old_max_items,
+                "max_items_after": int(self.config.inject_max_items),
+            }
+        )
+        self._persist_smart_context_config(
+            {
+                "inject_threshold": float(self.config.inject_threshold),
+                "inject_max_items": int(self.config.inject_max_items),
+            }
+        )
+        if self.config.inject_debug:
+            print(
+                f"[SmartContext] AUTO_TUNE inject threshold {old_threshold:.2f}->{self.config.inject_threshold:.2f} "
+                f"max_items {old_max_items}->{self.config.inject_max_items}"
+            )
 
     def _tune_adaptive(self) -> None:
         if not self._inject_history:
