@@ -67,7 +67,7 @@ class IndexEntry:
 @dataclass
 class NexusConfig:
     """Nexus configuration"""
-    base_path: str = "~/workspace/DEEP_SEA_NEXUS_V2"
+    base_path: str = "~/.openclaw/workspace/DEEP_SEA_NEXUS_V2"
     memory_path: str = "memory/90_Memory"
     max_index_tokens: int = 300
     max_session_tokens: int = 1000

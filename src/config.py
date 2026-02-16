@@ -70,13 +70,14 @@ class NexusConfig:
     
     def _default_config(self):
         """Return default configuration"""
+        base_root = os.environ.get("OPENCLAW_WORKSPACE", os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
         return {
             "project": {
                 "name": "Deep-Sea Nexus v2.0",
                 "version": "2.0.0"
             },
             "paths": {
-                "base": os.path.join(os.path.expanduser("~"), "workspace", "DEEP_SEA_NEXUS_V2"),
+                "base": os.path.join(base_root, "DEEP_SEA_NEXUS_V2"),
                 "memory": "memory/90_Memory"
             },
             "index": {
