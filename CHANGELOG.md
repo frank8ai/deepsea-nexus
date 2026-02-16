@@ -1,4 +1,11 @@
-# Changelog - Deep-Sea Nexus v3.x
+# Changelog - Deep-Sea Nexus v4.x
+
+## Version 4.0.0 (2026-02-16)
+### 🧠 v4.0 - Smarter Memory Loop
+- ✅ Optional real embeddings with safe fallback
+- ✅ Usage-aware recall ranking + dedupe
+- ✅ Tiered recall + novelty gate
+- ✅ Async-core compat sync bridge
 
 ## Version 3.1.0 (2026-02-13)
 
