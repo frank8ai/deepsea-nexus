@@ -40,15 +40,15 @@
   },
   "smart_context": {
     "inject_enabled": true,
-    "inject_threshold": 0.6,
-    "inject_max_items": 3,
+    "inject_threshold": 0.55,
+    "inject_max_items": 4,
     "inject_debug": false,
     "inject_debug_max_chars": 200,
-    "inject_mode": "balanced",
+    "inject_mode": "aggressive",
     "association_enabled": true,
-    "context_starved_min_chars": 16,
+    "context_starved_min_chars": 8,
     "decision_block_enabled": true,
-    "decision_block_max": 3
+    "decision_block_max": 5
   },
   "brain": {
     "enabled": true,
