@@ -17,7 +17,21 @@ import re
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from layered_storage import LayeredStorage, MemoryItem, MemoryTier
+try:
+    from layered_storage import LayeredStorage, MemoryItem, MemoryTier
+except Exception:
+    LayeredStorage = None
+    MemoryItem = None
+    MemoryTier = None
+
+try:
+    from .compat import nexus_init, nexus_recall
+except Exception:
+    try:
+        from compat import nexus_init, nexus_recall
+    except Exception:
+        nexus_init = None
+        nexus_recall = None
 
 
 @dataclass
@@ -73,8 +87,9 @@ class ContextInjector:
     ]
     
     def __init__(self,
-                 layered_storage: LayeredStorage = None,
-                 max_tokens: int = 2000):
+                 layered_storage: Optional["LayeredStorage"] = None,
+                 max_tokens: int = 2000,
+                 prefer_compat: bool = True):
         """
         初始化注入器
         
@@ -82,7 +97,10 @@ class ContextInjector:
             layered_storage: 分层存储实例
             max_tokens: 最大注入 token
         """
-        self.storage = layered_storage or LayeredStorage()
+        self.storage = layered_storage
+        self.prefer_compat = bool(prefer_compat)
+        if self.storage is None and LayeredStorage is not None:
+            self.storage = LayeredStorage()
         self.max_tokens = max_tokens
         
         # 编译触发词模式
@@ -288,23 +306,46 @@ class ContextInjector:
     
     def _retrieve_related(self, query: str, limit: int) -> List[MemoryItem]:
         """检索相关记忆"""
+        # Prefer compat recall if available (plugin-enabled path).
+        if self.prefer_compat and nexus_init and nexus_recall:
+            try:
+                if nexus_init():
+                    results = nexus_recall(query, n=limit)
+                    out = []
+                    for r in results or []:
+                        if MemoryItem is None:
+                            continue
+                        out.append(
+                            MemoryItem(
+                                content=getattr(r, "content", ""),
+                                title=getattr(r, "source", ""),
+                                tier=MemoryTier.WARM,
+                            )
+                        )
+                    return out
+            except Exception:
+                pass
+
+        if self.storage is None or MemoryTier is None:
+            return []
+
         # 从热记忆和温记忆检索
         hot_items = [
             i for i in self.storage.index.values()
             if i.tier in (MemoryTier.HOT, MemoryTier.WARM)
         ]
-        
+
         # 关键词匹配
         matched = []
         query_lower = query.lower()
-        
+
         for item in hot_items:
             if query_lower in item.title.lower() or query_lower in item.content.lower():
                 matched.append(item)
-        
+
         # 按访问次数排序
         matched.sort(key=lambda x: x.access_count, reverse=True)
-        
+
         return matched[:limit]
     
     def _calculate_relevance(self, item: MemoryItem, topic: str) -> float:
