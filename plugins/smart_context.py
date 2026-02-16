@@ -91,6 +91,9 @@ class ContextCompressionConfig:
     context_starved_min_chars: int = 16
     decision_block_enabled: bool = True
     decision_block_max: int = 3
+    topic_block_enabled: bool = True
+    topic_block_max: int = 3
+    topic_block_min_keywords: int = 2
     graph_inject_enabled: bool = True
     graph_max_items: int = 3
     graph_evidence_max_chars: int = 120
@@ -110,6 +113,15 @@ class ContextCompressionConfig:
     inject_ratio_auto_tune_step: float = 0.05
     inject_ratio_auto_tune_max_items: int = 6
     inject_persist_interval_sec: int = 60
+
+    # 注入信号增强与动态门控
+    inject_signal_boost_decision: float = 0.12
+    inject_signal_boost_topic: float = 0.08
+    inject_signal_boost_summary: float = 0.05
+    inject_dynamic_enabled: bool = True
+    inject_dynamic_max_items: int = 5
+    inject_dynamic_low_signal_penalty: int = 1
+    inject_dynamic_high_signal_bonus: int = 1
     
     # 抢救规则 (NOW.md)
     rescue_enabled: bool = True       # 启用压缩前抢救
@@ -228,6 +240,9 @@ class SmartContextPlugin(NexusPlugin):
                     context_starved_min_chars=smart_cfg.get("context_starved_min_chars", 16),
                     decision_block_enabled=smart_cfg.get("decision_block_enabled", True),
                     decision_block_max=smart_cfg.get("decision_block_max", 3),
+                    topic_block_enabled=smart_cfg.get("topic_block_enabled", True),
+                    topic_block_max=smart_cfg.get("topic_block_max", 3),
+                    topic_block_min_keywords=smart_cfg.get("topic_block_min_keywords", 2),
                     graph_inject_enabled=smart_cfg.get("graph_inject_enabled", True),
                     graph_max_items=smart_cfg.get("graph_max_items", 3),
                     graph_evidence_max_chars=smart_cfg.get("graph_evidence_max_chars", 120),
@@ -245,6 +260,13 @@ class SmartContextPlugin(NexusPlugin):
                     inject_ratio_auto_tune_step=smart_cfg.get("inject_ratio_auto_tune_step", 0.05),
                     inject_ratio_auto_tune_max_items=smart_cfg.get("inject_ratio_auto_tune_max_items", 6),
                     inject_persist_interval_sec=smart_cfg.get("inject_persist_interval_sec", 60),
+                    inject_signal_boost_decision=smart_cfg.get("inject_signal_boost_decision", 0.12),
+                    inject_signal_boost_topic=smart_cfg.get("inject_signal_boost_topic", 0.08),
+                    inject_signal_boost_summary=smart_cfg.get("inject_signal_boost_summary", 0.05),
+                    inject_dynamic_enabled=smart_cfg.get("inject_dynamic_enabled", True),
+                    inject_dynamic_max_items=smart_cfg.get("inject_dynamic_max_items", 5),
+                    inject_dynamic_low_signal_penalty=smart_cfg.get("inject_dynamic_low_signal_penalty", 1),
+                    inject_dynamic_high_signal_bonus=smart_cfg.get("inject_dynamic_high_signal_bonus", 1),
                     rescue_enabled=smart_cfg.get("rescue_enabled", True),
                     rescue_gold=smart_cfg.get("rescue_gold", True),
                     rescue_decisions=smart_cfg.get("rescue_decisions", True),
@@ -479,6 +501,10 @@ class SmartContextPlugin(NexusPlugin):
             self._store_context(conversation_id, round_num, result)
             if blocks:
                 self._store_decision_blocks(conversation_id, round_num, blocks)
+            if self.config.topic_block_enabled:
+                topics = self._extract_topics(f"{user_message}\n{ai_response}")
+                if topics:
+                    self._store_topic_blocks(conversation_id, round_num, topics)
             result["stored"] = True
         
         # 更新历史
@@ -793,6 +819,7 @@ class SmartContextPlugin(NexusPlugin):
         questions = self._extract_questions(user_message + "\n" + ai_response)
         entities = self._extract_key_entities(user_message + "\n" + ai_response)
         keywords = self.extract_keywords(user_message + " " + ai_response)
+        topics = self._extract_topics(user_message + "\n" + ai_response)
 
         fields = set(self.config.summary_template_fields or ())
         lines: List[str] = []
@@ -800,6 +827,8 @@ class SmartContextPlugin(NexusPlugin):
             lines.append(f"Summary: {summary}")
         if "decisions" in fields and decisions:
             lines.append(f"Decisions: {'; '.join(decisions[:3])}")
+        if "topics" in fields and topics:
+            lines.append(f"Topics: {', '.join(topics[:4])}")
         if "next_actions" in fields and actions:
             lines.append(f"Next: {'; '.join(actions[:3])}")
         if "questions" in fields and questions:
@@ -810,6 +839,31 @@ class SmartContextPlugin(NexusPlugin):
             lines.append(f"Keywords: {', '.join(keywords[:6])}")
 
         return "\n".join(lines).strip()
+
+    def _extract_topics(self, text: str) -> List[str]:
+        if not text:
+            return []
+        topics: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip(" \t-•")
+            if not line:
+                continue
+            if line.startswith("## "):
+                topics.append(line[3:].strip()[:60])
+            if any(k in line for k in ("主题", "话题", "模块", "子系统", "项目")) and len(line) <= 80:
+                topics.append(line)
+        keywords = self.extract_keywords(text)
+        if len(keywords) >= int(self.config.topic_block_min_keywords):
+            topics.append(" / ".join(keywords[: int(self.config.topic_block_min_keywords) + 1]))
+        seen = set()
+        uniq = []
+        for t in topics:
+            t = t.strip()
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            uniq.append(t)
+        return uniq[: max(1, int(self.config.topic_block_max))]
 
     def _detect_topic_switch(self, user_message: str) -> bool:
         if not self.config.topic_switch_enabled:
@@ -855,6 +909,58 @@ class SmartContextPlugin(NexusPlugin):
             item["content"] = text
             trimmed.append(item)
         return trimmed
+
+    def _normalize_tags(self, metadata: Any) -> List[str]:
+        tags: List[str] = []
+        if isinstance(metadata, dict):
+            raw = metadata.get("tags") or []
+            if isinstance(raw, list):
+                tags.extend([str(t).strip() for t in raw if str(t).strip()])
+            elif isinstance(raw, str):
+                tags.extend([t.strip() for t in raw.split(",") if t.strip()])
+        return tags
+
+    def _score_injected_item(self, relevance: float, tags: List[str], source: str) -> float:
+        score = float(relevance or 0.0)
+        tag_str = ",".join(tags)
+        if "type:decision_block" in tag_str or "决策块" in (source or ""):
+            score += float(self.config.inject_signal_boost_decision)
+        if "type:topic_block" in tag_str or "主题块" in (source or ""):
+            score += float(self.config.inject_signal_boost_topic)
+        if "type:summary" in tag_str or "摘要" in (source or ""):
+            score += float(self.config.inject_signal_boost_summary)
+        return min(1.5, score)
+
+    def _has_signal_tag(self, tags: List[str], source: str) -> bool:
+        if not tags and not source:
+            return False
+        tag_str = ",".join(tags)
+        if "type:decision_block" in tag_str or "type:topic_block" in tag_str:
+            return True
+        if "决策块" in (source or "") or "主题块" in (source or ""):
+            return True
+        return False
+
+    def _dynamic_inject_params(self, reason: str, items: List[Dict[str, Any]]) -> Tuple[int, float]:
+        max_items = int(self.config.inject_max_items)
+        threshold = float(self.config.inject_threshold)
+
+        if reason == "context_starved":
+            max_items = max(1, min(2, max_items))
+            threshold = max(0.0, min(1.0, threshold * 0.85))
+
+        if not self.config.inject_dynamic_enabled:
+            return max_items, threshold
+
+        signal_hits = sum(1 for item in items if self._has_signal_tag(item.get("tags", []), item.get("source", "")))
+        if signal_hits == 0:
+            max_items = max(1, max_items - int(self.config.inject_dynamic_low_signal_penalty))
+            threshold = min(0.95, threshold + 0.05)
+        elif signal_hits >= 2:
+            max_items = min(int(self.config.inject_dynamic_max_items), max_items + int(self.config.inject_dynamic_high_signal_bonus))
+            threshold = max(0.0, threshold - 0.05)
+
+        return max_items, threshold
 
     def _extract_graph_edges(self, block: str, conversation_id: str) -> List[Dict[str, Any]]:
         if not block:
@@ -906,6 +1012,29 @@ class SmartContextPlugin(NexusPlugin):
                         round_num=round_num,
                         entity_types=edge.get("entity_types"),
                     )
+
+    def _store_topic_blocks(self, conversation_id: str, round_num: int, topics: List[str]) -> None:
+        if not topics:
+            return
+        for idx, topic in enumerate(topics, 1):
+            self._call_nexus(
+                "add_document",
+                content=topic,
+                title=f"主题块 {conversation_id} - 轮{round_num} ({idx})",
+                tags=f"type:topic_block,round:{round_num},conversation:{conversation_id}"
+            )
+            if self._graph_enabled:
+                graph_add_edge(
+                    subj=f"conversation:{conversation_id}",
+                    rel="topic",
+                    obj=topic[:80],
+                    weight=0.8,
+                    source=f"topic_block:{conversation_id}",
+                    evidence_text=topic,
+                    conversation_id=conversation_id,
+                    round_num=round_num,
+                    entity_types={"subj": "conversation", "obj": "topic"},
+                )
     
     def store_conversation(self, 
                           conversation_id: str,
@@ -958,6 +1087,11 @@ class SmartContextPlugin(NexusPlugin):
             if self.config.decision_block_enabled:
                 blocks = self._extract_decision_blocks(f"{user_message}\n{ai_response}")
                 self._store_decision_blocks(conversation_id, 0, blocks)
+
+            if self.config.topic_block_enabled:
+                topics = self._extract_topics(f"{user_message}\n{ai_response}")
+                if topics:
+                    self._store_topic_blocks(conversation_id, 0, topics)
                 
         except Exception as e:
             result["error"] = str(e)
@@ -1016,22 +1150,34 @@ class SmartContextPlugin(NexusPlugin):
             return []
         
         try:
-            max_items = self.config.inject_max_items
-            threshold = self.config.inject_threshold
-            if reason == "context_starved":
-                max_items = max(1, min(2, max_items))
-                threshold = max(0.0, min(1.0, threshold * 0.85))
+            max_items = int(self.config.inject_max_items)
+            threshold = float(self.config.inject_threshold)
 
-            results = self._call_nexus("search_recall", user_message, max_items) or []
-            
+            fetch_n = max_items
+            if self.config.inject_dynamic_enabled:
+                fetch_n = max(fetch_n, int(self.config.inject_dynamic_max_items))
+            results = self._call_nexus("search_recall", user_message, fetch_n) or []
+            items: List[Dict[str, Any]] = []
+            for r in results:
+                metadata = getattr(r, "metadata", {}) or {}
+                tags = self._normalize_tags(metadata)
+                score = self._score_injected_item(float(getattr(r, "relevance", 0.0) or 0.0), tags, getattr(r, "source", ""))
+                items.append(
+                    {
+                        "content": getattr(r, "content", ""),
+                        "source": getattr(r, "source", ""),
+                        "relevance": getattr(r, "relevance", 0.0),
+                        "score": score,
+                        "tags": tags,
+                    }
+                )
+
+            max_items, threshold = self._dynamic_inject_params(reason, items)
+
             filtered = [
-                {
-                    "content": r.content,
-                    "source": r.source,
-                    "relevance": r.relevance,
-                }
-                for r in results
-                if r.relevance >= threshold
+                item
+                for item in items
+                if float(item.get("score", item.get("relevance", 0.0))) >= threshold
             ]
             if self.config.inject_debug:
                 sources = [r.get("source", "unknown") for r in filtered]
@@ -1051,6 +1197,7 @@ class SmartContextPlugin(NexusPlugin):
                     "injected": injected,
                     "ratio": round(ratio, 3),
                     "threshold": round(float(threshold), 3),
+                    "max_items": int(max_items),
                 }
             )
             
@@ -1059,10 +1206,10 @@ class SmartContextPlugin(NexusPlugin):
             if self.config.inject_topk_only:
                 def _score(item: Dict[str, Any]) -> float:
                     try:
-                        return float(item.get("relevance", 0.0))
+                        return float(item.get("score", item.get("relevance", 0.0)))
                     except Exception:
                         return 0.0
-                final = sorted(final, key=_score, reverse=True)[: max(1, int(self.config.inject_max_items))]
+                final = sorted(final, key=_score, reverse=True)[: max(1, int(max_items))]
             final = self._trim_injected_items(final)
             graph_ratio = (len(graph_items) / injected) if injected else 0.0
             self._append_metrics(
@@ -1406,6 +1553,30 @@ def store_conversation(conversation_id: str, user_message: str, ai_response: str
             uniq.append(b)
         return uniq[:3]
 
+    def _extract_topics(text: str) -> List[str]:
+        if not text:
+            return []
+        topics: List[str] = []
+        for raw in text.splitlines():
+            line = raw.strip(" \t-•")
+            if not line:
+                continue
+            if line.startswith("## "):
+                topics.append(line[3:].strip()[:60])
+            if any(k in line for k in ("主题", "话题", "模块", "子系统", "项目")) and len(line) <= 80:
+                topics.append(line)
+        kws = _extract_keywords(text)
+        if len(kws) >= 2:
+            topics.append(" / ".join(kws[:3]))
+        seen = set()
+        uniq = []
+        for t in topics:
+            if t in seen:
+                continue
+            seen.add(t)
+            uniq.append(t)
+        return uniq[:3]
+
     summary = _extract_summary(ai_response)
     nexus_add(ai_response, f"对话 {conversation_id} - 原文", f"type:content,source:{conversation_id}")
     if summary:
@@ -1418,6 +1589,10 @@ def store_conversation(conversation_id: str, user_message: str, ai_response: str
     decisions = _extract_decisions(user_message + "\\n" + ai_response)
     for idx, block in enumerate(decisions, 1):
         nexus_add(block, f"决策块 {conversation_id} - ({idx})", f"type:decision_block,source:{conversation_id}")
+
+    topics = _extract_topics(user_message + "\\n" + ai_response)
+    for idx, topic in enumerate(topics, 1):
+        nexus_add(topic, f"主题块 {conversation_id} - ({idx})", f"type:topic_block,source:{conversation_id}")
 
     return {"stored": True, "conversation_id": conversation_id}
 
