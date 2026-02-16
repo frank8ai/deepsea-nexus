@@ -24,6 +24,18 @@ except Exception:
     MemoryItem = None
     MemoryTier = None
 
+    class _CompatMemoryTier:
+        HOT = "HOT"
+        WARM = "WARM"
+        COLD = "COLD"
+
+    @dataclass
+    class _CompatMemoryItem:
+        content: str
+        title: str
+        tier: str
+        access_count: int = 0
+
 try:
     from .compat import nexus_init, nexus_recall
 except Exception:
@@ -314,6 +326,13 @@ class ContextInjector:
                     out = []
                     for r in results or []:
                         if MemoryItem is None:
+                            out.append(
+                                _CompatMemoryItem(
+                                    content=getattr(r, "content", ""),
+                                    title=getattr(r, "source", ""),
+                                    tier=_CompatMemoryTier.WARM,
+                                )
+                            )
                             continue
                         out.append(
                             MemoryItem(
