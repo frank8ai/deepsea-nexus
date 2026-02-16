@@ -54,7 +54,9 @@ class VectorStore:
         # 创建客户端
         self.client = chromadb.PersistentClient(
             path=persist_path,
-            settings=Settings(anonymized_telemetry=False)
+            settings=Settings(anonymized_telemetry=False),
+            tenant="default_tenant",
+            database="default_database",
         )
         
         # 获取或创建集合

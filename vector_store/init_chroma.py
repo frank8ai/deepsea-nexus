@@ -59,7 +59,9 @@ class VectorStoreInit:
             settings=Settings(
                 anonymized_telemetry=False,
                 allow_reset=True
-            )
+            ),
+            tenant="default_tenant",
+            database="default_database",
         )
         
         # Get or create collection
