@@ -243,7 +243,11 @@ print(f"总文档数: {stats['total_documents']}")
     "track_usage": true,
     "decay_on_checkpoint_days": 14,
     "decay_floor": 0.1,
-    "decay_step": 0.05
+    "decay_step": 0.05,
+    "tiered_recall": false,
+    "tiered_order": ["P0", "P1", "P2"],
+    "tiered_limits": [3, 2, 1],
+    "dedupe_on_recall": true
   }
 }
 ```

@@ -90,6 +90,10 @@ class NexusCorePlugin(NexusPlugin):
             brain_decay_on_checkpoint_days = int(brain_cfg.get("decay_on_checkpoint_days", 14))
             brain_decay_floor = float(brain_cfg.get("decay_floor", 0.1))
             brain_decay_step = float(brain_cfg.get("decay_step", 0.05))
+            brain_tiered_recall = bool(brain_cfg.get("tiered_recall", False))
+            brain_tiered_order = brain_cfg.get("tiered_order")
+            brain_tiered_limits = brain_cfg.get("tiered_limits")
+            brain_dedupe_on_recall = bool(brain_cfg.get("dedupe_on_recall", True))
             brain_novelty_cfg = brain_cfg.get("novelty", {}) if isinstance(brain_cfg, dict) else {}
             brain_novelty_enabled = bool(brain_novelty_cfg.get("enabled", False))
             brain_novelty_min_similarity = float(brain_novelty_cfg.get("min_similarity", 0.92))
@@ -114,6 +118,10 @@ class NexusCorePlugin(NexusPlugin):
                         novelty_enabled=brain_novelty_enabled,
                         novelty_min_similarity=brain_novelty_min_similarity,
                         novelty_window_seconds=brain_novelty_window_seconds,
+                        tiered_recall=brain_tiered_recall,
+                        tiered_order=brain_tiered_order,
+                        tiered_limits=brain_tiered_limits,
+                        dedupe_on_recall=brain_dedupe_on_recall,
                     )
                     self._brain_available = True
                     logger.info("✓ Brain hook enabled")

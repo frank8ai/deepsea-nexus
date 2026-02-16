@@ -16,6 +16,10 @@ _TRACK_USAGE: bool = True
 _NOVELTY_ENABLED: bool = False
 _NOVELTY_MIN_SIMILARITY: float = 0.92
 _NOVELTY_WINDOW_SECONDS: int = 3600
+_TIERED_RECALL: bool = False
+_TIERED_ORDER: List[str] = ["P0", "P1", "P2"]
+_TIERED_LIMITS: List[int] = [3, 2, 1]
+_DEDUPE_ON_RECALL: bool = True
 
 
 def configure_brain(
@@ -33,14 +37,25 @@ def configure_brain(
     novelty_enabled: bool = False,
     novelty_min_similarity: float = 0.92,
     novelty_window_seconds: int = 3600,
+    tiered_recall: bool = False,
+    tiered_order: Optional[List[str]] = None,
+    tiered_limits: Optional[List[int]] = None,
+    dedupe_on_recall: bool = True,
 ) -> None:
     global _STORE, _SCORER, _ENABLED, _TRACK_USAGE
     global _NOVELTY_ENABLED, _NOVELTY_MIN_SIMILARITY, _NOVELTY_WINDOW_SECONDS
+    global _TIERED_RECALL, _TIERED_ORDER, _TIERED_LIMITS, _DEDUPE_ON_RECALL
     _ENABLED = bool(enabled)
     _TRACK_USAGE = bool(track_usage)
     _NOVELTY_ENABLED = bool(novelty_enabled)
     _NOVELTY_MIN_SIMILARITY = max(0.0, min(1.0, float(novelty_min_similarity)))
     _NOVELTY_WINDOW_SECONDS = max(0, int(novelty_window_seconds))
+    _TIERED_RECALL = bool(tiered_recall)
+    if tiered_order:
+        _TIERED_ORDER = [str(x) for x in tiered_order if str(x)]
+    if tiered_limits:
+        _TIERED_LIMITS = [max(0, int(x)) for x in tiered_limits]
+    _DEDUPE_ON_RECALL = bool(dedupe_on_recall)
     _STORE = JSONLBrainStore(
         base_path=base_path,
         max_snapshots=max_snapshots,
@@ -215,8 +230,56 @@ def brain_retrieve(
             d["score"] = round(score, 4)
             scored.append(d)
 
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    out = scored[: max(0, limit)]
+    def _dedupe(recs: List[Dict]) -> List[Dict]:
+        if not _DEDUPE_ON_RECALL:
+            return recs
+        seen: Dict[str, int] = {}
+        out: List[Dict] = []
+        for r in recs:
+            key = r.get("hash") or r.get("id")
+            if not key:
+                continue
+            idx = seen.get(key)
+            if idx is None:
+                seen[key] = len(out)
+                out.append(r)
+                continue
+
+            # Prefer records with stored embeddings or newer updates.
+            existing = out[idx]
+            r_meta = r.get("metadata") or {}
+            e_meta = existing.get("metadata") or {}
+            r_has_emb = isinstance(r_meta.get("embedding"), list)
+            e_has_emb = isinstance(e_meta.get("embedding"), list)
+            if r_has_emb and not e_has_emb:
+                out[idx] = r
+                continue
+            if e_has_emb and not r_has_emb:
+                continue
+
+            r_ts = _parse_iso(str(r.get("updated_at", "")))
+            e_ts = _parse_iso(str(existing.get("updated_at", "")))
+            if r_ts and e_ts and r_ts > e_ts:
+                out[idx] = r
+        return out
+
+    if _TIERED_RECALL and scored:
+        order = _TIERED_ORDER or ["P0", "P1", "P2"]
+        limits = _TIERED_LIMITS or []
+        out = []
+        for idx, pr in enumerate(order):
+            tier = [r for r in scored if r.get("priority") == pr]
+            tier.sort(key=lambda x: x["score"], reverse=True)
+            cap = limits[idx] if idx < len(limits) else max(0, limit - len(out))
+            if cap <= 0:
+                continue
+            out.extend(tier[:cap])
+            if len(out) >= limit:
+                break
+        out = _dedupe(out)[: max(0, limit)]
+    else:
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        out = _dedupe(scored)[: max(0, limit)]
 
     if _TRACK_USAGE and out:
         try:

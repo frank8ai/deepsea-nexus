@@ -97,6 +97,46 @@ class TestBrainIntegration(unittest.TestCase):
             self.assertTrue(stats.get("version"))
             self.assertTrue(rollback(stats["version"]))
 
+    def test_tiered_recall_respects_priority_order(self):
+        with tempfile.TemporaryDirectory() as td:
+            configure_brain(
+                enabled=True,
+                base_path=td,
+                tiered_recall=True,
+                tiered_order=["P0", "P1", "P2"],
+                tiered_limits=[1, 1, 1],
+            )
+            brain_write(
+                {
+                    "id": "p2",
+                    "kind": "fact",
+                    "priority": "P2",
+                    "source": "itest",
+                    "content": "common term",
+                }
+            )
+            brain_write(
+                {
+                    "id": "p0",
+                    "kind": "fact",
+                    "priority": "P0",
+                    "source": "itest",
+                    "content": "common term",
+                }
+            )
+            brain_write(
+                {
+                    "id": "p1",
+                    "kind": "fact",
+                    "priority": "P1",
+                    "source": "itest",
+                    "content": "common term",
+                }
+            )
+
+            out = brain_retrieve("common term", mode="facts", limit=3, min_score=0.0)
+            self.assertEqual([r["priority"] for r in out], ["P0", "P1", "P2"])
+
     def test_backfill_embeddings_appends_updates(self):
         class _FakeEmb:
             def __init__(self, vec):
