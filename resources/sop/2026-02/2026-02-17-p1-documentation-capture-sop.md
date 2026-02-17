@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-17
 - Name: 文档沉淀与知识归档
+- Tags: p1, documentation, capture
+- Primary triggers: 出现可复用结论或关键决策; 同类问题重复出现 >= 2 次
+- Primary outputs: 结构化知识条目; 可检索标签和引用链接
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 决策后快速沉淀并链接原始证据；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-documentation-capture-toolchain-research.md。
 - Best Method compliance: 模板化记录+标签索引+定期清理；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-documentation-capture-toolchain-research.md。
 - Best Tool compliance: 沉淀模板+标签规范+路径校验；依据：增益[沉淀模板:复用率提升 >=30%；标签规范:检索命中率提升 >=25%；路径校验脚本:失链率下降 >=30%]；回滚[沉淀模板->增加自由备注区；标签规范->标签白名单；路径校验脚本->发布前强制校验]；研究记录：resources/sop/2026-02/research-toolchain/p1-documentation-capture-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 标签冲突 | 同一文档标签语义冲突 | 按标签白名单重标 | 升级到规范维护者 |
 | 路径错误 | 链接404或引用失效 | 修复路径并重跑检查 | 升级到仓库维护 |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 核心条目证据缺失率 > 20%
 - Stop condition 2: 检索命中率连续两周 < 70%
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 条目一次发布通过
 - Rework rate ceiling: <= 15 percent 条目需要二次补写
 - Adoption target: 100 percent 关键决策有沉淀记录
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-documentation-capture-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-documentation-capture-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-documentation-capture-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-documentation-capture-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-documentation-capture-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-documentation-capture-sop.overview.md
+

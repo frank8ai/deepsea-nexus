@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-28
 - Name: 人脉维护与周期触达
+- Tags: p2, network, maintenance
+- Primary triggers: 关键联系人数量 >= 10; 关键联系人连续30天未触达
+- Primary outputs: 本周期触达计划; 触达记录和下一步行动
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 先关键后泛化，触达后必须记录；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-network-maintenance-toolchain-research.md。
 - Best Method compliance: 分层名单+周期触达+复盘；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-network-maintenance-toolchain-research.md。
 - Best Tool compliance: 分层清单+节奏表+触达记录卡；依据：增益[关系分层清单:触达命中率提升 >=30%；触达节奏表:漏触达率下降 >=25%；触达记录卡:跟进质量提升 >=20%]；回滚[关系分层清单->季度复核分层；触达节奏表->允许弹性窗口；触达记录卡->最小字段记录]；研究记录：resources/sop/2026-02/research-toolchain/p2-network-maintenance-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 跟进堆积 | 未完成跟进 > 5项 | 清理低价值项 | 升级周计划重排 |
 | 记录缺失 | 触达后无记录 | 24小时内补录 | 升级到流程重训 |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键层触达完成率 < 70%
 - Stop condition 2: 触达记录完整率 < 80%
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 关键触达按计划完成
 - Rework rate ceiling: <= 15 percent 触达需二次跟进改写
 - Adoption target: 100 percent 关键联系人纳入周期管理
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-network-maintenance-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-network-maintenance-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-network-maintenance-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-network-maintenance-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-network-maintenance-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-network-maintenance-sop.overview.md
+

@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-22
 - Name: 家务与周期维护
+- Tags: p1, home, maintenance
+- Primary triggers: 存在周期任务且过去30天有遗漏; 同类维护任务连续2次延迟
+- Primary outputs: 本周家务维护执行计划; 执行完成和异常记录
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 周期化和可视化优先；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-home-maintenance-toolchain-research.md。
 - Best Method compliance: 固定窗口执行+完成后记录；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-home-maintenance-toolchain-research.md。
 - Best Tool compliance: 周期清单+日历提醒+维护记录；依据：增益[周期清单:漏项率下降 >=30%；固定窗口日历:完成率提升 >=25%；维护记录表:复发问题下降 >=20%]；回滚[周期清单->月度刷新；固定窗口日历->预留备选窗口；维护记录表->最小字段强制]；研究记录：resources/sop/2026-02/research-toolchain/p1-home-maintenance-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 任务过重 | 单任务耗时超预算 | 拆分为子任务 | 升级到周计划调整 |
 | 重复延期 | 同任务延期2次 | 下周优先级提升 | 升级到家庭协同SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键维护任务遗漏率 > 20%
 - Stop condition 2: 执行窗口连续2周无效
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 周期任务按期启动
 - Rework rate ceiling: <= 15 percent 任务需二次重排
 - Adoption target: 100 percent 周期任务纳入清单
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-home-maintenance-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-home-maintenance-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-home-maintenance-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-home-maintenance-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-home-maintenance-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-home-maintenance-sop.overview.md
+

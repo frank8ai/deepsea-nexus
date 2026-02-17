@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-19
 - Name: 周月复盘与规则更新
+- Tags: p1, weekly, monthly, review
+- Primary triggers: 到达周末或月末复盘窗口; 关键指标连续2周期反向变化
+- Primary outputs: 复盘结论和偏差原因; 1-3条规则更新
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 复盘必须产出可执行规则；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-weekly-monthly-review-toolchain-research.md。
 - Best Method compliance: 指标对比+偏差归因+小步规则更新；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-weekly-monthly-review-toolchain-research.md。
 - Best Tool compliance: 复盘模板+指标看板+规则库；依据：增益[复盘模板:复盘质量提升 >=30%；指标看板:偏差定位速度提升 >=25%；规则库:复用率提升 >=20%]；回滚[复盘模板->强制偏差分析；指标看板->指标分层；规则库->定期清理]；研究记录：resources/sop/2026-02/research-toolchain/p1-weekly-monthly-review-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 规则冲突 | 新旧规则语义冲突 | 保留旧规则并标记新规则draft | 升级评审人裁决 |
 | 规则过多 | 单周期更新>3条 | 按影响度只保留Top3 | 升级到下周期处理 |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键指标缺失无法归因
 - Stop condition 2: 规则冲突未解决
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 复盘首轮完成规则更新
 - Rework rate ceiling: <= 15 percent 规则需二次修订
 - Adoption target: 100 percent 周月复盘使用本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-sop.overview.md
+

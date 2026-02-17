@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-25
 - Name: 复杂决策与多模型评估
+- Tags: p2, decision, multi, model
+- Primary triggers: 决策影响级别为medium或high; 关键信息缺口 >= 3项
+- Primary outputs: 多模型对比结论; 执行建议和停止条件
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 高影响决策必须多模型交叉；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-decision-multi-model-toolchain-research.md。
 - Best Method compliance: 三模型对比+风险矩阵+止损线；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-decision-multi-model-toolchain-research.md。
 - Best Tool compliance: 决策卡+对比表+风险矩阵；依据：增益[决策卡模板:漏项率下降 >=30%；多模型对比表:风险识别率提升 >=25%；风险矩阵:止损速度提升 >=20%]；回滚[决策卡模板->精简字段；多模型对比表->双人复核；风险矩阵->周期校准]；研究记录：resources/sop/2026-02/research-toolchain/p2-decision-multi-model-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 证据不足 | 关键指标缺失 | 补证据前不执行 | 升级到研究SOP |
 | 执行后偏差过大 | 结果偏离预测 > 30% | 触发止损并重评 | 升级高压事件SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 成功指标无法量化
 - Stop condition 2: 关键风险无止损动作
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 决策评估首轮完成
 - Rework rate ceiling: <= 15 percent 决策需二次评估
 - Adoption target: 100 percent medium/high决策使用本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-decision-multi-model-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-decision-multi-model-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-decision-multi-model-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-decision-multi-model-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-decision-multi-model-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-decision-multi-model-sop.overview.md
+

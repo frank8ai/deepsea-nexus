@@ -22,6 +22,7 @@ REQUIRED_SOP_SECTIONS = [
     "Outputs",
     "Three-Optimal Decision",
     "Procedure",
+    "Kill Switch",
     "Rollback and Stop Conditions",
     "SLA and Metrics",
     "Change Control",
@@ -45,6 +46,14 @@ DEFAULT_WEIGHTS = [0.35, 0.20, 0.20, 0.15, 0.10]
 ALLOWED_RISK_TIERS = {"low", "medium", "high"}
 ALLOWED_REVERSIBILITY = {"R1": 2, "R2": 3, "R3": 4}
 ALLOWED_EVIDENCE = {"E1": 1, "E2": 2, "E3": 3, "E4": 4}
+REQUIRED_METADATA_LINES = [
+    "Tags:",
+    "Primary triggers:",
+    "Primary outputs:",
+    "Effective condition:",
+    "Review cycle:",
+    "Retirement condition:",
+]
 REQUIRED_DECLARATION_LINES = [
     "Non-negotiables check:",
     "Outcome metric and baseline:",
@@ -53,6 +62,8 @@ REQUIRED_DECLARATION_LINES = [
     "Best Practice compliance:",
     "Best Method compliance:",
     "Best Tool compliance:",
+    "Simplicity and maintainability check:",
+    "Closed-loop writeback check:",
 ]
 
 
@@ -163,6 +174,24 @@ def parse_int_field(text: str, label: str) -> int | None:
     return int(m.group(1))
 
 
+def count_table_data_rows(section: str) -> int:
+    rows = 0
+    for line in section.splitlines():
+        s = line.strip()
+        if not s.startswith("|"):
+            continue
+        if re.search(r"^\|\s*---", s):
+            continue
+        parts = [p.strip() for p in s.strip("|").split("|")]
+        if len(parts) < 3:
+            continue
+        first = parts[0].lower()
+        if first in {"trigger threshold", "scenario", "step", "metric", "option"}:
+            continue
+        rows += 1
+    return rows
+
+
 def validate_sop(repo_root: Path, sop_path: Path, strict: bool) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
@@ -187,6 +216,13 @@ def validate_sop(repo_root: Path, sop_path: Path, strict: bool) -> dict[str, Any
     risk_tier_raw = parse_text_field(metadata_section, "Risk tier:")
     reversibility_raw = parse_text_field(metadata_section, "Reversibility class:")
     evidence_raw = parse_text_field(metadata_section, "Evidence tier at release:")
+
+    for label in REQUIRED_METADATA_LINES:
+        value = parse_text_field(metadata_section, label)
+        if strict and not value:
+            errors.append(f"Missing metadata value: `{label}`")
+        elif not strict and not value:
+            warnings.append(f"Missing metadata value: `{label}`")
 
     risk_tier = normalize_token(risk_tier_raw, upper=False)
     reversibility = normalize_token(reversibility_raw, upper=True)
@@ -234,10 +270,31 @@ def validate_sop(repo_root: Path, sop_path: Path, strict: bool) -> dict[str, Any
     if strict and not blast_radius:
         errors.append("Missing `Blast radius limit` in rollback section.")
 
+    kill_switch_section = extract_section(sop_text, "Kill Switch")
+    if strict:
+        kill_rows = count_table_data_rows(kill_switch_section)
+        if kill_rows < 1:
+            errors.append("Kill Switch section must include at least one data row.")
+
     release_section = extract_section(sop_text, "Release Readiness")
     release_decision = parse_text_field(release_section, "Release decision:")
+    auto_downgrade_gate = parse_text_field(release_section, "Auto-downgrade gate:")
     if strict and status == "active" and release_decision.lower() != "approve":
         errors.append("Active SOP requires `Release decision: approve`.")
+    if strict and not auto_downgrade_gate:
+        errors.append("Missing `Auto-downgrade gate` in release readiness.")
+
+    sla_section = extract_section(sop_text, "SLA and Metrics")
+    result_metric = parse_text_field(sla_section, "Result metric (primary):")
+    process_metric = parse_text_field(sla_section, "Process metric (secondary):")
+    replacement_rule = parse_text_field(sla_section, "Replacement rule:")
+    if strict:
+        if not result_metric:
+            errors.append("Missing `Result metric (primary)` in SLA and Metrics.")
+        if not process_metric:
+            errors.append("Missing `Process metric (secondary)` in SLA and Metrics.")
+        if not replacement_rule:
+            errors.append("Missing `Replacement rule` in SLA and Metrics.")
 
     score_ref = find_line_value(sop_text, "Scorecard reference:")
     if not score_ref:

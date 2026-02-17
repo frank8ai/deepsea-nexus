@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-05
 - Name: 工作执行闭环与状态更新
+- Tags: work, execution, loop
+- Primary triggers: a task is in progress and next action is not logged; blocker remains unresolved for more than 4 hours
+- Primary outputs: updated task status with evidence; blocker log and next action
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 每个执行回路必须有“下一步动作 + 当前状态 + 阻塞信号”；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/work-execution-loop-toolchain-research.md。
 - Best Method compliance: 30分钟执行回路（执行 -> 更新 -> 判定阻塞 -> 路由）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/work-execution-loop-toolchain-research.md。
 - Best Tool compliance: 状态看板 + 阻塞升级清单 + strict validator；依据：增益[状态看板:阻塞可见性提升 >=30%；阻塞升级清单:阻塞时长下降 >=25%；strict validator:变更质量稳定]；回滚[状态看板->每日两次刷新；阻塞升级清单->设升级阈值；strict validator->批量校验]；研究记录：resources/sop/2026-02/research-toolchain/work-execution-loop-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Standardize execution into short closed loops with explicit status updates and b
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Standardize execution into short closed loops with explicit status updates and b
 - First-pass yield target: >= 88 percent loops end with clear next state
 - Rework rate ceiling: <= 14 percent loops require redo due to unclear status
 - Adoption target: 100 percent in-progress tasks use loop status updates
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-work-execution-loop-iteration-log.md
@@ -121,6 +138,7 @@ Standardize execution into short closed loops with explicit status updates and b
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-work-execution-loop-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Standardize execution into short closed loops with explicit status updates and b
 - Scorecard: resources/sop/2026-02/2026-02-17-work-execution-loop-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-work-execution-loop-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-work-execution-loop-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-work-execution-loop-sop.overview.md
+

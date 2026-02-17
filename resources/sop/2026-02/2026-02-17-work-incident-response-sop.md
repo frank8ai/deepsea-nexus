@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-07
 - Name: 工作异常响应与恢复
+- Tags: work, incident, response
+- Primary triggers: an incident signal is detected and severity is unknown; severity is medium or high and impact expands
+- Primary outputs: severity classification and containment action; recovery summary and post-incident action list
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 先分级再处置，优先控制爆炸半径；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/work-incident-response-toolchain-research.md。
 - Best Method compliance: 事件流程五段（检测 -> 分级 -> 遏制 -> 恢复 -> 复盘）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/work-incident-response-toolchain-research.md。
 - Best Tool compliance: 事件模板 + 严重度矩阵 + strict validator；依据：增益[事件模板:响应一致性提升 >=30%；严重度矩阵:分级正确率提升 >=25%；strict validator:漏项下降 >=35%]；回滚[事件模板->最小字段先行；严重度矩阵->手工override并复盘；strict validator->合并评审时运行]；研究记录：resources/sop/2026-02/research-toolchain/work-incident-response-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Create a repeatable incident workflow for fast detection, severity classificatio
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Create a repeatable incident workflow for fast detection, severity classificatio
 - First-pass yield target: >= 90 percent incidents classified correctly on first pass
 - Rework rate ceiling: <= 15 percent incidents require reopen
 - Adoption target: 100 percent incidents logged with this SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-work-incident-response-iteration-log.md
@@ -121,6 +138,7 @@ Create a repeatable incident workflow for fast detection, severity classificatio
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-work-incident-response-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Create a repeatable incident workflow for fast detection, severity classificatio
 - Scorecard: resources/sop/2026-02/2026-02-17-work-incident-response-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-work-incident-response-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-work-incident-response-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-work-incident-response-sop.overview.md
+

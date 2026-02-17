@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-12
 - Name: 生活健康基线
+- Tags: life, health, baseline
+- Primary triggers: week starts or health baseline review day arrives; two or more baseline metrics miss target for 3 days
+- Primary outputs: health baseline plan with targets; daily adherence record
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 睡眠、运动、饮食三基线优先，先稳定再优化；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/life-health-baseline-toolchain-research.md。
 - Best Method compliance: 周计划 + 日追踪 + 连续偏离触发纠偏；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/life-health-baseline-toolchain-research.md。
 - Best Tool compliance: 健康基线表 + 日追踪打卡 + 周复盘；依据：增益[基线目标表:清晰度提升 >=30%；日追踪打卡:连续执行率提升 >=25%；周复盘模板:恢复速度提升 >=20%]；回滚[基线目标表->每周校准；日追踪打卡->仅跟踪关键项；周复盘模板->强制1-3规则]；研究记录：resources/sop/2026-02/research-toolchain/life-health-baseline-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Run a weekly health baseline routine covering sleep, activity, and meal planning
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Run a weekly health baseline routine covering sleep, activity, and meal planning
 - First-pass yield target: >= 85 percent days meet baseline targets
 - Rework rate ceiling: <= 15 percent days require reset
 - Adoption target: 100 percent weeks include baseline record
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-life-health-baseline-iteration-log.md
@@ -121,6 +138,7 @@ Run a weekly health baseline routine covering sleep, activity, and meal planning
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-life-health-baseline-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Run a weekly health baseline routine covering sleep, activity, and meal planning
 - Scorecard: resources/sop/2026-02/2026-02-17-life-health-baseline-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-life-health-baseline-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-life-health-baseline-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-life-health-baseline-sop.overview.md
+

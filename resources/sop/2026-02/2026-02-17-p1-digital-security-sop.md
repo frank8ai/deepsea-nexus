@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-23
 - Name: 数字安全与备份权限管理
+- Tags: p1, digital, security
+- Primary triggers: 存在关键数据或多账号系统; 检测到异常登录或权限漂移
+- Primary outputs: 安全检查报告; 整改任务与完成记录
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 最小权限和可恢复性优先；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-digital-security-toolchain-research.md。
 - Best Method compliance: 固定周期检查+异常即时处理；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-digital-security-toolchain-research.md。
 - Best Tool compliance: 备份计划+权限审计清单+密码管理器；依据：增益[备份任务计划:数据丢失风险下降 >=30%；权限审计清单:过权风险下降 >=25%；密码管理器:弱口令风险下降 >=30%]；回滚[备份任务计划->月度恢复演练；权限审计清单->双人复核；密码管理器->应急恢复方案]；研究记录：resources/sop/2026-02/research-toolchain/p1-digital-security-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 权限异常 | 发现不应有的高权限 | 立即回收并记录 | 升级到owner审计 |
 | 异常登录 | 新设备或异地登录警报 | 强制改密和会话失效 | 升级到安全事件响应 |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键资产未备份
 - Stop condition 2: 高风险权限未在24小时内回收
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 安全检查首轮通过
 - Rework rate ceiling: <= 15 percent 整改需二次处理
 - Adoption target: 100 percent 关键资产纳入安全流程
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-digital-security-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-digital-security-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-digital-security-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-digital-security-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-digital-security-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-digital-security-sop.overview.md
+

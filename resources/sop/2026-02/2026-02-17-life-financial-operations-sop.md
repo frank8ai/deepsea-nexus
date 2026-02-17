@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-13
 - Name: 生活财务运行
+- Tags: life, financial, operations
+- Primary triggers: weekly finance review window starts; forecasted cash buffer falls below threshold
+- Primary outputs: updated weekly budget status; exception list and next-week actions
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 现金流与账单优先，先稳健再优化收益；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/life-financial-operations-toolchain-research.md。
 - Best Method compliance: 周度资金检查（收入/支出/账单/缓冲）+ 异常阈值触发；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/life-financial-operations-toolchain-research.md。
 - Best Tool compliance: 预算表 + 账单日历 + 异常清单；依据：增益[预算表:超支率下降 >=20%；账单日历:逾期率下降 >=30%；异常清单:响应速度提升 >=25%]；回滚[预算表->固定分类字典；账单日历->周固定更新；异常清单->限制Top3异常]；研究记录：resources/sop/2026-02/research-toolchain/life-financial-operations-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Standardize weekly budget, bill, and cash-flow checks to reduce surprises and ke
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Standardize weekly budget, bill, and cash-flow checks to reduce surprises and ke
 - First-pass yield target: >= 95 percent bills tracked before due date
 - Rework rate ceiling: <= 10 percent spending categories exceed plan
 - Adoption target: 100 percent weeks include finance log
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-life-financial-operations-iteration-log.md
@@ -121,6 +138,7 @@ Standardize weekly budget, bill, and cash-flow checks to reduce surprises and ke
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-life-financial-operations-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Standardize weekly budget, bill, and cash-flow checks to reduce surprises and ke
 - Scorecard: resources/sop/2026-02/2026-02-17-life-financial-operations-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-life-financial-operations-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-life-financial-operations-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-life-financial-operations-sop.overview.md
+

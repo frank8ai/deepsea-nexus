@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-01
 - Name: Weekly Decision Review and Rule Update
+- Tags: weekly, decision, review
+- Primary triggers: it is Friday 17:00 local time OR open decision cards are 5 or more
+- Primary outputs: updated rule entries in `agent/patterns/decision-rules.md`; weekly iteration log in `resources/sop/YYYY-MM/*-iteration-log.md`
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.2
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: hard-gated checklist review with explicit pass/fail.；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
 - Best Method compliance: batch review by threshold filters then 3-model comparison.；依据：Winner A=4.15，Runner-up=3.30，Margin=0.85，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
 - Best Tool compliance: markdown templates plus `rg` for fast field validation.；依据：增益[Markdown templates:immediate standardization；`rg`:fast presence checks；`git`:auditable iteration history]；回滚[Markdown templates->keep template strict and reviewed；`rg`->fallback to manual checklist；`git`->branch per cycle]；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -95,6 +103,12 @@ Complete weekly review of active decision cards and publish 1-3 validated rule u
 | Conflicting rules | duplicate or opposite rule intent | keep existing active rule, mark candidate draft | escalate to reviewer |
 | Time overrun risk | elapsed time > 30 minutes before step 5 | process top-risk cards first and defer remainder | escalate with carry-over list |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: fewer than 3 valid cards available for weekly review.
 - Stop condition 2: unresolved conflicts in active rules after 2 review attempts.
@@ -106,6 +120,9 @@ Complete weekly review of active decision cards and publish 1-3 validated rule u
 - First-pass yield target: >= 90 percent cards pass hard gates on first review.
 - Rework rate ceiling: <= 10 percent cards require second review.
 - Adoption target: 100 percent high-scope decisions follow this review.
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: `resources/sop/YYYY-MM/`.
@@ -120,6 +137,7 @@ Complete weekly review of active decision cards and publish 1-3 validated rule u
 ## Release Readiness
 - Validation command:
   - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.md --strict`
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -128,3 +146,6 @@ Complete weekly review of active decision cards and publish 1-3 validated rule u
 - Scorecard: `resources/sop/2026-02/2026-02-17-weekly-decision-review-scorecard.md`
 - Iteration log: `resources/sop/2026-02/2026-02-17-weekly-decision-review-iteration-log.md`
 - Related decision cards: `resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md`
+- L0 abstract: resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.overview.md
+

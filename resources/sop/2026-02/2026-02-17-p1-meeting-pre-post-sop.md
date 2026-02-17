@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-16
 - Name: 会议准备与行动闭环
+- Tags: p1, meeting, pre, post
+- Primary triggers: 会议时长 >= 20 分钟或参会人 >= 3; 连续2次会议行动项完成率 < 80%
+- Primary outputs: 会议纪要与决策结论; 行动项清单（责任人、截止时间）
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 会前目标清晰、会中聚焦议程、会后行动闭环；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-meeting-pre-post-toolchain-research.md。
 - Best Method compliance: 三段式流程（会前准备、会中推进、会后追踪）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-meeting-pre-post-toolchain-research.md。
 - Best Tool compliance: 议程模板+计时器+行动项看板；依据：增益[会议议程模板:议程偏移下降 >=30%；计时器:超时率下降 >=25%；行动项看板:完成率提升 >=30%]；回滚[会议议程模板->固定最小模板；计时器->关键议题延时机制；行动项看板->每日收盘更新]；研究记录：resources/sop/2026-02/research-toolchain/p1-meeting-pre-post-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 行动项无人认领 | 会后2小时仍无责任人 | 主持人指定并确认 | 升级到项目owner |
 | 会议超时 | 超时>20% | 拆分后续专题会 | 升级到周计划SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 连续2次会议无可执行行动项
 - Stop condition 2: 行动项完成率连续2周 < 60%
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 会议首轮达成明确结论
 - Rework rate ceiling: <= 15 percent 行动项需二次澄清
 - Adoption target: 100 percent 关键会议使用本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-sop.overview.md
+

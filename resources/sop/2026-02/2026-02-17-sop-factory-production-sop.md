@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-15
 - Name: SOP Factory Production
+- Tags: sop, factory, production
+- Primary triggers: task frequency is >= 3 per month AND outcome variance coefficient is <= 0.20; an active SOP has first-pass yield < 85% or rework rate > 20% in one review window
+- Primary outputs: SOP artifact triplet (`sop.md`, `scorecard.md`, `iteration-log.md`) with release decision; strict validation evidence and 1-3 rule updates for next cycle
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.2
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: non-compensatory standard stack with explicit hard-gate release policy.；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/sop-factory-production-toolchain-research.md。
 - Best Method compliance: six-step factory pipeline (classify -> baseline -> scorecard -> author -> pilot -> iterate).；依据：Winner B=4.55，Runner-up=3.80，Margin=0.75，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/sop-factory-production-toolchain-research.md。
 - Best Tool compliance: markdown templates, strict validator, and `rg` checks for completeness and references.；依据：增益[Markdown templates:>=30% drafting consistency gain；`validate_sop_factory.py --strict`:>=40% reduction in gate-miss defects；`rg`:>=30% reduction in manual review time]；回滚[Markdown templates->keep custom notes in appendix；`validate_sop_factory.py --strict`->keep draft mode until pilot is complete；`rg`->manual section-by-section review]；研究记录：resources/sop/2026-02/research-toolchain/sop-factory-production-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -98,6 +106,12 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 | Evidence tier mismatch | R/E mapping fails (`R1->E2`, `R2->E3`, `R3->E4`) | block activation and upgrade evidence tier | escalate as release hold |
 | Strict validation failure | validator reports missing sections or unchecked gates | run one focused correction loop and re-validate | escalate if second pass still fails |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: baseline sample count is below 3.
 - Stop condition 2: strict validation fails after two correction loops.
@@ -109,6 +123,9 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 - First-pass yield target: >= 90 percent SOP candidates pass strict validation on first attempt.
 - Rework rate ceiling: <= 15 percent SOP candidates require second correction loop.
 - Adoption target: 100 percent qualified repeatable tasks follow SOP factory routing.
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: `resources/sop/2026-02/2026-02-17-sop-factory-production-iteration-log.md`
@@ -123,6 +140,7 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 ## Release Readiness
 - Validation command:
   - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-sop-factory-production-sop.md --strict`
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -131,3 +149,6 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 - Scorecard: `resources/sop/2026-02/2026-02-17-sop-factory-production-scorecard.md`
 - Iteration log: `resources/sop/2026-02/2026-02-17-sop-factory-production-iteration-log.md`
 - Related decision cards: `resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md`
+- L0 abstract: resources/sop/2026-02/2026-02-17-sop-factory-production-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-sop-factory-production-sop.overview.md
+

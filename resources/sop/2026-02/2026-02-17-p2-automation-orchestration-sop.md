@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-24
 - Name: 自动化编排与集成
+- Tags: p2, automation, orchestration
+- Primary triggers: 同类任务重复 >= 3次/周; 自动化异常率 > 10%
+- Primary outputs: 自动化脚本和执行计划; 监控告警与回滚说明
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 自动化必须可观测且可回滚；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-automation-orchestration-toolchain-research.md。
 - Best Method compliance: 脚本化+告警+演练回滚；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-automation-orchestration-toolchain-research.md。
 - Best Tool compliance: 脚本仓库+告警系统+回滚手册；依据：增益[自动化脚本:人工工时下降 >=30%；告警规则:异常发现提前 >=25%；回滚手册:恢复时间下降 >=20%]；回滚[自动化脚本->快速回滚脚本；告警规则->阈值调优；回滚手册->周度演练]；研究记录：resources/sop/2026-02/research-toolchain/p2-automation-orchestration-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 告警失真 | 误报率连续两天 > 20% | 调阈值并分级告警 | 升级到监控维护者 |
 | 回滚失败 | 回滚步骤未完成 | 执行应急手册人工恢复 | 升级高压事件SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 回滚演练失败
 - Stop condition 2: 自动化异常率连续2周 > 10%
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 自动化首轮通过
 - Rework rate ceiling: <= 15 percent 自动化需二次修复
 - Adoption target: 100 percent 符合条件任务纳入自动化评估
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-automation-orchestration-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-automation-orchestration-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-automation-orchestration-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-automation-orchestration-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-automation-orchestration-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-automation-orchestration-sop.overview.md
+

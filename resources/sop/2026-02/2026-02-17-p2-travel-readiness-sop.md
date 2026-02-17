@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-27
 - Name: 旅行出差准备与执行
+- Tags: p2, travel, readiness
+- Primary triggers: 确认出行计划; 关键资料缺失或行程变更
+- Primary outputs: 行前准备清单完成状态; 行中变更和应急记录
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 关键资料和应急预案先于舒适性安排；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-travel-readiness-toolchain-research.md。
 - Best Method compliance: 分阶段清单准备+行中检查点；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-travel-readiness-toolchain-research.md。
 - Best Tool compliance: 行前清单+行程板+应急卡片；依据：增益[行前清单:漏项下降 >=30%；行程板:延误应对速度提升 >=25%；应急卡片:应急响应提升 >=20%]；回滚[行前清单->出行后复盘更新；行程板->单一来源维护；应急卡片->出发前复核]；研究记录：resources/sop/2026-02/research-toolchain/p2-travel-readiness-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 行程延误 | 关键节点延误 > 2小时 | 启动备选路线 | 升级到应急联系人联动 |
 | 预算超支 | 实时支出超预算阈值 | 压缩非关键支出 | 升级到财务运行SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键证件不可用
 - Stop condition 2: 应急联络链不可达
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 出行关键清单首轮完成
 - Rework rate ceiling: <= 15 percent 行程需二次重排
 - Adoption target: 100 percent 出行计划使用本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-travel-readiness-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-travel-readiness-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-travel-readiness-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-travel-readiness-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-travel-readiness-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-travel-readiness-sop.overview.md
+

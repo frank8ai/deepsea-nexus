@@ -32,3 +32,17 @@
 - Monthly KPI dashboard:
   - Script: `scripts/generate_sop_iteration_trends.py`
   - Output: `resources/sop/2026-02/2026-02-sop-iteration-kpi-dashboard.md`
+
+## Governance V2 Upgrade (All SOP)
+- Scope:
+  - 31/31 SOP upgraded with non-compensatory highest standards and 4 hard mechanisms.
+- Hard mechanisms applied:
+  - Lifecycle fields (`Effective condition`, `Review cycle`, `Retirement condition`)
+  - `Kill Switch` table
+  - Dual-track metrics (`Result metric (primary)`, `Process metric (secondary)`, replacement rule)
+  - `Auto-downgrade gate` (`active -> draft` when 2 consecutive monthly degradations)
+- Retrieval-friendly layer:
+  - Metadata fields: `Tags`, `Primary triggers`, `Primary outputs`
+  - L0/L1 assets: 31 `.abstract.md` + 31 `.overview.md`
+- Acceptance:
+  - 31/31 strict pass (`python3 scripts/validate_sop_factory.py --sop <file> --strict`)

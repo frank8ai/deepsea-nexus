@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-03
 - Name: 工作任务澄清与成功标准
+- Tags: work, task, clarification
+- Primary triggers: a new task arrives without explicit KPI or acceptance criteria; more than 2 clarification loops occurred for the same task
+- Primary outputs: completed task-clarification record; approved success criteria and non-goals
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 先定义目标与验收，再进入执行，禁止“边做边猜”；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/work-task-clarification-toolchain-research.md。
 - Best Method compliance: 双轮澄清（首轮提取目标/约束，二轮复述确认并冻结MVP边界）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/work-task-clarification-toolchain-research.md。
 - Best Tool compliance: 任务澄清卡 + 必填字段检查 + strict validator；依据：增益[澄清卡模板:返工率下降 >=30%；strict validator:漏项率下降 >=40%；issue 看板:状态可见性提升 >=30%]；回滚[澄清卡模板->增加备注区；strict validator->草稿先宽后严；issue 看板->每日收盘更新]；研究记录：resources/sop/2026-02/research-toolchain/work-task-clarification-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Standardize task intake so every work item starts with clear objective, measurab
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Standardize task intake so every work item starts with clear objective, measurab
 - First-pass yield target: >= 92 percent tasks pass first-pass clarity gate
 - Rework rate ceiling: <= 12 percent tasks need re-clarification
 - Adoption target: 100 percent new tasks use this SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-work-task-clarification-iteration-log.md
@@ -121,6 +138,7 @@ Standardize task intake so every work item starts with clear objective, measurab
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-work-task-clarification-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Standardize task intake so every work item starts with clear objective, measurab
 - Scorecard: resources/sop/2026-02/2026-02-17-work-task-clarification-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-work-task-clarification-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-work-task-clarification-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-work-task-clarification-sop.overview.md
+

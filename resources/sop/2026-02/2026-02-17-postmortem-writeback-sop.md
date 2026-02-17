@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-23
 - Name: 复盘写回（规则库/反例库）
+- Tags: postmortem, writeback, rules, anti-patterns, learning-loop
+- Primary triggers: task done; repeated failure; KPI observed (success/fail)
+- Primary outputs: postmortem decision card; 1-3 rule updates; anti-pattern case (if applicable)
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.1
@@ -10,6 +13,9 @@
 - Risk tier: low
 - Reversibility class: R1
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: turn postmortems into executable rules; versioned, sourced, and reviewable.
 - Best Method compliance: 3-artifact writeback (facts card + rules + anti-pattern) with 1-3 rule updates per cycle.
 - Best Tool compliance: markdown templates + grep checks + (optional) SOP factory validator.
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -84,6 +92,12 @@ Systematize dynamic learning by converting every completed task/decision into ve
 | Too many rule candidates | >3 updates | keep top 1-3 by impact; defer rest to backlog | escalate if repeated |
 | Sensitive content risk | API keys / secrets found | redact and store only pointers; do not write secrets | stop and escalate |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: source cannot be identified.
 - Stop condition 2: writeback contains sensitive content.
@@ -95,6 +109,9 @@ Systematize dynamic learning by converting every completed task/decision into ve
 - First-pass yield target: >= 90 percent postmortems produce at least 1 valid rule update.
 - Rework rate ceiling: <= 10 percent rule updates require correction after review.
 - Adoption target: 100 percent tasks tagged P0/P1 have postmortem writeback.
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-postmortem-writeback-iteration-log.md
@@ -110,6 +127,7 @@ Systematize dynamic learning by converting every completed task/decision into ve
 - Validation command:
   - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md`
   - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md --strict`
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -119,3 +137,6 @@ Systematize dynamic learning by converting every completed task/decision into ve
 - Iteration log: resources/sop/2026-02/2026-02-17-postmortem-writeback-iteration-log.md
 - Quick card: resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.overview.md
+

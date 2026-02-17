@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-YYYYMMDD-XX
 - Name:
+- Tags:
+- Primary triggers:
+- Primary outputs:
 - Owner:
 - Team:
 - Version: v1.0
@@ -10,6 +13,9 @@
 - Risk tier: low | medium | high
 - Reversibility class: R1 | R2 | R3
 - Evidence tier at release: E1 | E2 | E3 | E4
+- Effective condition:
+- Review cycle:
+- Retirement condition:
 - Created on:
 - Last reviewed on:
 
@@ -32,6 +38,8 @@
 - Best Practice compliance:
 - Best Method compliance:
 - Best Tool compliance:
+- Simplicity and maintainability check:
+- Closed-loop writeback check:
 - Compliance reviewer:
 
 ## Objective
@@ -76,6 +84,12 @@
 |---|---|---|---|
 | | | | |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1:
 - Stop condition 2:
@@ -87,6 +101,9 @@
 - First-pass yield target:
 - Rework rate ceiling:
 - Adoption target:
+- Result metric (primary):
+- Process metric (secondary):
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location:
@@ -101,6 +118,7 @@
 ## Release Readiness
 - Validation command:
   - `python3 scripts/validate_sop_factory.py --sop <this-file-path> --strict`
+- Auto-downgrade gate:
 - Release decision: approve | hold
 - Approver:
 - Approval date:
@@ -108,4 +126,6 @@
 ## Links
 - Scorecard:
 - Iteration log:
+- L0 abstract:
+- L1 overview:
 - Related decision cards:

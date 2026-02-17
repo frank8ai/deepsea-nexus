@@ -4,11 +4,17 @@
 All SOPs must satisfy the supreme standard stack in this order:
 1. Non-negotiables (legal/safety/security/data integrity).
 2. Outcome value over activity.
-3. Evidence before escalation.
+3. Evidence strength follows risk.
 4. Reversibility-aware speed.
 5. Three-optimal execution (Best Practice, Best Method, Best Tool).
 6. Simplicity and maintainability.
 7. Closed-loop learning.
+
+## Mandatory Mechanisms
+1. Lifecycle fields: effective condition, review cycle, retirement condition.
+2. Kill Switch: trigger threshold -> immediate stop -> rollback action.
+3. Dual-track metrics: result (primary) + process (secondary), no substitution.
+4. Auto-downgrade gate: 2 consecutive monthly degradations -> `active` to `draft`.
 
 ## Evidence-Reversibility Rule
 - `R1` requires at least `E2`.
@@ -27,6 +33,15 @@ All SOPs must satisfy the supreme standard stack in this order:
 - SOP template: `resources/sop/TEMPLATE.sop.md`
 - Scorecard template: `resources/sop/TEMPLATE.sop-scorecard.md`
 - Iteration log template: `resources/sop/TEMPLATE.sop-iteration-log.md`
+
+## Retrieval-Friendly Layer
+- Metadata fields are mandatory in every SOP:
+  - `Tags`
+  - `Primary triggers`
+  - `Primary outputs`
+- L0/L1 files:
+  - `<sop>.abstract.md` (L0, minimal semantic summary)
+  - `<sop>.overview.md` (L1, invocation and execution skeleton)
 
 ## System SOP Quick Cards
 - `resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md`

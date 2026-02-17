@@ -21,6 +21,12 @@
 - Failed runs:
 - Major incident count:
 
+## Monthly Trend Guard
+- Primary result metric:
+- Consecutive degradation cycles:
+- Auto-downgrade required (active -> draft): yes | no
+- Action taken:
+
 ## Principle Drift Check
 - Best Practice drift detected:
 - Best Method drift detected:
@@ -54,6 +60,7 @@
 - Release gate for active status:
   - [ ] Total runs in window >= 5
   - [ ] Rule updates in this cycle are 1-3
+  - [ ] Consecutive degradation cycles < 2
 
 ## Actions for Next Cycle
 | Action | Owner | Due date | Success signal |

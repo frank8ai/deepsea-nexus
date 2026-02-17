@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-09
 - Name: 学习主动检索会话
+- Tags: study, active, retrieval, session
+- Primary triggers: study session starts; retrieval accuracy below threshold for two sessions
+- Primary outputs: retrieval score log; session summary and next focus list
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 主动检索优先于被动重读，先测后学；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/study-active-retrieval-session-toolchain-research.md。
 - Best Method compliance: 检索-纠错-重测三段会话；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/study-active-retrieval-session-toolchain-research.md。
 - Best Tool compliance: 题集/闪卡 + 计时器 + 会话日志；依据：增益[题库/闪卡:回忆率提升 >=25%；计时器:单次效率提升 >=20%；会话日志:错因闭环率提升 >=30%]；回滚[题库/闪卡->每周校准题库；计时器->放宽窗口；会话日志->最小字段记录]；研究记录：resources/sop/2026-02/research-toolchain/study-active-retrieval-session-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Run learning sessions using active retrieval first, then targeted review, to imp
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Run learning sessions using active retrieval first, then targeted review, to imp
 - First-pass yield target: >= 85 percent sessions meet retrieval target
 - Rework rate ceiling: <= 15 percent sessions require full redo
 - Adoption target: 100 percent planned sessions follow this SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-study-active-retrieval-session-iteration-log.md
@@ -121,6 +138,7 @@ Run learning sessions using active retrieval first, then targeted review, to imp
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-study-active-retrieval-session-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Run learning sessions using active retrieval first, then targeted review, to imp
 - Scorecard: resources/sop/2026-02/2026-02-17-study-active-retrieval-session-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-study-active-retrieval-session-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-study-active-retrieval-session-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-study-active-retrieval-session-sop.overview.md
+

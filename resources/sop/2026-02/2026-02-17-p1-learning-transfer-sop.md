@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-20
 - Name: 学习迁移与应用实践
+- Tags: p1, learning, transfer
+- Primary triggers: 完成一次学习会话或模块; 连续2次学习后无迁移产出
+- Primary outputs: 实践产出（题解或功能实现）; 迁移复盘记录
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 学习后尽快应用，防止知识停留在理解层；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p1-learning-transfer-toolchain-research.md。
 - Best Method compliance: 72小时迁移窗口+小任务验证；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p1-learning-transfer-toolchain-research.md。
 - Best Tool compliance: 迁移任务清单+练习仓库+迁移日志；依据：增益[迁移任务清单:迁移率提升 >=30%；实战练习仓库:复盘质量提升 >=25%；迁移日志:闭环速度提升 >=20%]；回滚[迁移任务清单->拆小任务；实战练习仓库->周归档；迁移日志->最小字段强制]；研究记录：resources/sop/2026-02/research-toolchain/p1-learning-transfer-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 无可用实践题 | 任务池为空 | 从当前项目提取微任务 | 升级到内容owner |
 | 迁移失败率高 | 连续2次未产出有效结果 | 降级难度并增加示例 | 升级到专项辅导 |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 连续两周迁移完成率 < 60%
 - Stop condition 2: 迁移任务无验证结果
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 85 percent 迁移任务首轮有产出
 - Rework rate ceiling: <= 15 percent 迁移任务需重做
 - Adoption target: 100 percent 学习模块后执行迁移
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p1-learning-transfer-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p1-learning-transfer-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p1-learning-transfer-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p1-learning-transfer-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-task-clarification.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p1-learning-transfer-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p1-learning-transfer-sop.overview.md
+

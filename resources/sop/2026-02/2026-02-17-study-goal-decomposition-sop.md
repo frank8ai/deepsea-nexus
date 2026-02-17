@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-08
 - Name: 学习目标拆解
+- Tags: study, goal, decomposition
+- Primary triggers: a new learning objective is added; weekly completion is below 75 percent
+- Primary outputs: skill decomposition table; milestone schedule with checkpoints
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 把学习目标拆成技能树、里程碑、可测检查点；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/study-goal-decomposition-toolchain-research.md。
 - Best Method compliance: 自顶向下分解 + 每周里程碑回看；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/study-goal-decomposition-toolchain-research.md。
 - Best Tool compliance: 学习目标卡 + 进度表 + strict validator；依据：增益[学习目标卡:清晰度提升 >=30%；进度表:偏差发现提前 >=25%；strict validator:漏项减少 >=35%]；回滚[学习目标卡->模板简化；进度表->周复盘强制更新；strict validator->草稿迭代后发布]；研究记录：resources/sop/2026-02/research-toolchain/study-goal-decomposition-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Decompose learning goals into skill units, milestones, and review checkpoints th
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Decompose learning goals into skill units, milestones, and review checkpoints th
 - First-pass yield target: >= 90 percent goals have measurable milestones
 - Rework rate ceiling: <= 12 percent milestones need major re-scope
 - Adoption target: 100 percent new goals use this SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-study-goal-decomposition-iteration-log.md
@@ -121,6 +138,7 @@ Decompose learning goals into skill units, milestones, and review checkpoints th
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-study-goal-decomposition-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Decompose learning goals into skill units, milestones, and review checkpoints th
 - Scorecard: resources/sop/2026-02/2026-02-17-study-goal-decomposition-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-study-goal-decomposition-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-study-goal-decomposition-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-study-goal-decomposition-sop.overview.md
+

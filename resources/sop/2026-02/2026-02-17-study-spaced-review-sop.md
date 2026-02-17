@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-10
 - Name: 学习间隔复习
+- Tags: study, spaced, review
+- Primary triggers: review day arrives for queued items; recall rate drops below threshold in two consecutive intervals
+- Primary outputs: updated recall scores per interval; next-interval schedule
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 间隔复习优先，按遗忘曲线安排回看节奏；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/study-spaced-review-toolchain-research.md。
 - Best Method compliance: 固定间隔+阈值自适应（低分缩短间隔）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/study-spaced-review-toolchain-research.md。
 - Best Tool compliance: 复习队列 + 间隔规则表 + 结果日志；依据：增益[复习队列:漏复习率下降 >=30%；间隔规则表:保持率提升 >=20%；结果日志:调参速度提升 >=25%]；回滚[复习队列->每周清理；间隔规则表->退回基础间隔；结果日志->最小字段强制]；研究记录：resources/sop/2026-02/research-toolchain/study-spaced-review-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Standardize spaced repetition scheduling so learned items are reviewed at optima
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Standardize spaced repetition scheduling so learned items are reviewed at optima
 - First-pass yield target: >= 88 percent items meet recall threshold
 - Rework rate ceiling: <= 14 percent items require interval rollback
 - Adoption target: 100 percent queued reviews follow schedule
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-study-spaced-review-iteration-log.md
@@ -121,6 +138,7 @@ Standardize spaced repetition scheduling so learned items are reviewed at optima
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-study-spaced-review-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Standardize spaced repetition scheduling so learned items are reviewed at optima
 - Scorecard: resources/sop/2026-02/2026-02-17-study-spaced-review-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-study-spaced-review-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-study-spaced-review-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-study-spaced-review-sop.overview.md
+

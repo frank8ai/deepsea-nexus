@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-29
 - Name: 高压事件处置与恢复
+- Tags: p2, high, pressure, response
+- Primary triggers: 出现高压事件信号或重大异常; 事件影响扩散到多个关键链路
+- Primary outputs: 处置结论和沟通记录; 恢复验证报告和复盘规则
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 先止损再沟通再恢复；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-high-pressure-response-toolchain-research.md。
 - Best Method compliance: 分级处置+模板沟通+检查清单恢复；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-high-pressure-response-toolchain-research.md。
 - Best Tool compliance: 分级表+沟通模板+恢复清单；依据：增益[事件分级表:分级正确率提升 >=25%；危机沟通模板:信息偏差下降 >=30%；恢复检查清单:恢复时间下降 >=20%]；回滚[事件分级表->允许人工override；危机沟通模板->现场补充说明；恢复检查清单->关键项优先]；研究记录：resources/sop/2026-02/research-toolchain/p2-high-pressure-response-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 沟通失真 | 外部信息与内部不一致 | 统一口径并重新同步 | 升级沟通负责人 |
 | 恢复不稳定 | 恢复后30分钟再次告警 | 回滚到稳定版本 | 升级异常响应SOP |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键链路未恢复
 - Stop condition 2: 沟通口径持续冲突
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 高压事件首轮分级正确
 - Rework rate ceiling: <= 15 percent 处置需二次分级
 - Adoption target: 100 percent 高压事件执行本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-high-pressure-response-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-high-pressure-response-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-high-pressure-response-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-high-pressure-response-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-high-pressure-response-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-high-pressure-response-sop.overview.md
+

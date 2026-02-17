@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-26
 - Name: 个人系统季度迭代
+- Tags: p2, quarterly, system, refactor
+- Primary triggers: 进入季度重构窗口; 关键健康指标连续2周恶化
+- Primary outputs: 季度重构计划; 分批实施记录和验证结果
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.3
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 先体检后改造，先可逆后不可逆；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/p2-quarterly-system-refactor-toolchain-research.md。
 - Best Method compliance: 季度审计+分批重构+每批验证；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/p2-quarterly-system-refactor-toolchain-research.md。
 - Best Tool compliance: 审计清单+分批计划+回归检查表；依据：增益[系统审计清单:问题发现率提升 >=30%；分批发布计划:回归事故下降 >=25%；回归检查表:漏测下降 >=20%]；回滚[系统审计清单->指标分层；分批发布计划->每批限范围；回归检查表->核心项优先]；研究记录：resources/sop/2026-02/research-toolchain/p2-quarterly-system-refactor-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -97,6 +105,12 @@
 | 指标恶化 | 性能下降超阈值 | 暂停后续批次并排查 | 升级到异常响应SOP |
 | 范围失控 | 重构范围超出计划 | 冻结新增需求 | 升级到项目owner |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: 关键批次不可回滚
 - Stop condition 2: 灰度阶段异常率 > 10%
@@ -108,6 +122,9 @@
 - First-pass yield target: >= 90 percent 批次首轮回归通过
 - Rework rate ceiling: <= 15 percent 批次需二次修复
 - Adoption target: 100 percent 季度窗口执行本SOP
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-iteration-log.md
@@ -122,6 +139,7 @@
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -130,3 +148,6 @@
 - Scorecard: resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-programming-learning-platform-weekly-daily-plan.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-p2-quarterly-system-refactor-sop.overview.md
+

@@ -1,17 +1,17 @@
 # SOP Factory Standard
 
-## Supreme Standard Stack (ordered)
+## Supreme Standard Stack (ordered, non-compensatory)
 These standards are non-compensatory and must be applied top-down:
 
 1. Non-Negotiables First
    - Legal, safety, security, and data integrity constraints cannot be traded off for speed or convenience.
 2. Outcome Value over Activity
    - SOPs optimize measurable outcomes, not step completion counts.
-3. Evidence before Escalation
-   - Higher-impact or less-reversible decisions require stronger evidence.
+3. Evidence Strength with Risk
+   - As risk rises, required evidence tier rises. No risk-evidence mismatch is allowed.
 4. Reversibility-Aware Speed
    - Move fast on reversible changes, slow down on irreversible changes.
-5. Three-Optimal Execution
+5. Three-Optimal Execution Layer
    - Best Practice defines valid option space.
    - Best Method chooses within that space by weighted score.
    - Best Tool optimizes execution with minimal complexity.
@@ -19,6 +19,20 @@ These standards are non-compensatory and must be applied top-down:
    - Prefer the simplest process that meets SLA and quality targets.
 7. Closed-Loop Learning
    - Every release must feed back measured signals into rule updates.
+
+## Hard Mechanisms (mandatory for every SOP)
+1. Lifecycle fields
+   - Every SOP must define:
+     - Effective condition.
+     - Review cycle.
+     - Retirement condition.
+2. Kill Switch table
+   - Every SOP must include trigger threshold -> immediate stop -> rollback action.
+3. Dual-track metrics
+   - Result metrics are primary.
+   - Process metrics are secondary and cannot replace result metrics.
+4. Auto-downgrade gate
+   - If monthly trend degrades for 2 consecutive cycles on primary result metric, status must move `active -> draft`.
 
 ## Objective
 Turn repeatable work into measurable SOPs with explicit artifacts, hard gates, and iteration control.
@@ -96,6 +110,7 @@ An SOP can move to `active` only when all are true:
 5. Reversibility class and evidence tier satisfy matrix rules.
 6. Validation command passes:
    - `python3 scripts/validate_sop_factory.py --sop <path> --strict`
+7. Auto-downgrade gate is declared in release readiness.
 
 ## Governance
 - Versioning: `vMAJOR.MINOR`.
@@ -104,11 +119,10 @@ An SOP can move to `active` only when all are true:
 - Review cadence:
   - Weekly: metrics review.
   - Biweekly: rule updates (1-3 only).
+  - Monthly: lifecycle review and downgrade gate check.
 - Mandatory metrics:
-  - Cycle time.
-  - First-pass yield.
-  - Rework rate.
-  - SOP adoption rate.
+  - Result metrics (primary): first-pass yield, adoption, or domain outcome metric.
+  - Process metrics (secondary): cycle time, rework rate.
 
 ## File Layout
 - SOP files: `resources/sop/YYYY-MM/<date>-<slug>.md`

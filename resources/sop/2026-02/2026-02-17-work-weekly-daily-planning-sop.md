@@ -3,6 +3,9 @@
 ## Metadata
 - SOP ID: SOP-20260217-04
 - Name: 工作周计划与日计划
+- Tags: work, weekly, daily, planning
+- Primary triggers: it is Monday planning window or daily kickoff time; daily completion trend falls below 80 percent for 2 days
+- Primary outputs: weekly top outcomes list; daily time-blocked task plan
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.4
@@ -10,6 +13,9 @@
 - Risk tier: medium
 - Reversibility class: R2
 - Evidence tier at release: E3
+- Effective condition: all hard gates checked; strict validation passes; release approved
+- Review cycle: monthly
+- Retirement condition: primary result metric degrades for 2 consecutive monthly cycles, workflow obsolete, or compliance change
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -32,6 +38,8 @@
 - Best Practice compliance: 周目标驱动日计划，限制并行任务数（WIP）防止切换损耗；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/work-weekly-daily-planning-toolchain-research.md。
 - Best Method compliance: 周-日双层规划（周定义结果，日定义时间块与优先级）；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/work-weekly-daily-planning-toolchain-research.md。
 - Best Tool compliance: 周计划板 + 日历 time-block + strict validator；依据：增益[周计划看板:完成率提升 >=20%；日历时间块:延误率下降 >=25%；strict validator:漏项率下降 >=30%]；回滚[周计划看板->缩减字段；日历时间块->预留20%缓冲；strict validator->草稿迭代后激活]；研究记录：resources/sop/2026-02/research-toolchain/work-weekly-daily-planning-toolchain-research.md。
+- Simplicity and maintainability check: workflow keeps minimum necessary steps and avoids tool/process bloat
+- Closed-loop writeback check: each cycle writes back 1-3 rules with source links and review date
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -96,6 +104,12 @@ Build a repeatable planning cadence that aligns weekly outcomes with daily execu
 | SLA breach risk | elapsed time exceeds 80% of target with incomplete output | switch to minimum viable output and close critical items first | escalate with carry-over list |
 | Quality gate failure | one or more hard gates unchecked | stop release and revise draft | escalate as hold decision |
 
+## Kill Switch
+| Trigger threshold | Immediate stop | Rollback action |
+|---|---|---|
+| Non-negotiable breach (legal/safety/security/data integrity) | Stop execution immediately and block release | Revert to last approved SOP version and open incident record |
+| Primary result metric degrades for 2 consecutive monthly cycles | Downgrade SOP status to `draft` and stop rollout | Restore previous stable SOP and rerun pilot >= 5 with strict validation |
+
 ## Rollback and Stop Conditions
 - Stop condition 1: non-negotiable constraint violation is detected
 - Stop condition 2: same gate fails twice in one run window
@@ -107,6 +121,9 @@ Build a repeatable planning cadence that aligns weekly outcomes with daily execu
 - First-pass yield target: >= 90 percent planned critical tasks started on time
 - Rework rate ceiling: <= 15 percent tasks rescheduled without rationale
 - Adoption target: 100 percent workdays start with plan record
+- Result metric (primary): first-pass yield target and adoption target are primary release and downgrade metrics.
+- Process metric (secondary): cycle time target and rework rate ceiling are secondary diagnostic metrics.
+- Replacement rule: process metrics cannot replace result metrics for release decisions.
 
 ## Logging and Evidence
 - Log location: resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-iteration-log.md
@@ -121,6 +138,7 @@ Build a repeatable planning cadence that aligns weekly outcomes with daily execu
 ## Release Readiness
 - Validation command:
   - python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-sop.md --strict
+- Auto-downgrade gate: if monthly KPI trend shows primary result metric degradation for 2 consecutive cycles, set `Status: draft` and rerun pilot + strict validation.
 - Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
@@ -129,3 +147,6 @@ Build a repeatable planning cadence that aligns weekly outcomes with daily execu
 - Scorecard: resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-iteration-log.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
+- L0 abstract: resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-sop.abstract.md
+- L1 overview: resources/sop/2026-02/2026-02-17-work-weekly-daily-planning-sop.overview.md
+
