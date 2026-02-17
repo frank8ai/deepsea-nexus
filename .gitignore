@@ -44,3 +44,5 @@ chroma_db/
 # Local dev hooks (runtime)
 hooks/
 
+# Local logs (runtime)
+logs/

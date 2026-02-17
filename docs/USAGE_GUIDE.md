@@ -180,6 +180,13 @@ python scripts/warm_writer.py --from ~/.openclaw/logs/summaries/xxx.json
 python scripts/para_recall.py --query "故障转移系统" --top-projects 3
 ```
 
+### OpenClaw Compaction 审计（系统级）
+
+```bash
+python scripts/openclaw_compaction_audit.py
+```
+
+
 ### 其他工具脚本
 
 ```bash

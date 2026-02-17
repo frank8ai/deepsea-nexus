@@ -430,6 +430,17 @@ class SmartContextPlugin(NexusPlugin):
             result["compressed"] = True
             rescue_result = self.rescue_before_compress(f"{user_message}\n{ai_response}")
             result["rescue"] = rescue_result
+            self._append_metrics(
+                {
+                    "event": "rescue_result",
+                    "saved": bool(rescue_result.get("saved")),
+                    "skipped": bool(rescue_result.get("skipped")),
+                    "reason": rescue_result.get("reason", ""),
+                    "decisions": rescue_result.get("decisions_rescued", 0),
+                    "goals": rescue_result.get("goals_rescued", 0),
+                    "questions": rescue_result.get("questions_rescued", 0),
+                }
+            )
             if rescue_result.get("saved"):
                 self._append_metrics(
                     {
@@ -445,18 +456,18 @@ class SmartContextPlugin(NexusPlugin):
                     f"goals={rescue_result.get('goals_rescued', 0)} "
                     f"questions={rescue_result.get('questions_rescued', 0)}"
                 )
-        if status in {"summary", "compressed"}:
-            self._append_metrics(
-                {
-                    "event": "context_status",
-                    "status": status,
-                    "reason": reason,
-                    "token_estimate": int(token_estimate),
-                    "full_tokens": int(usage_snapshot.get("full", 0)),
-                    "summary_tokens": int(usage_snapshot.get("summary", 0)),
-                    "compressed_tokens": int(usage_snapshot.get("compressed", 0)),
-                }
-            )
+        # Always emit context status for observability (full/summary/compressed)
+        self._append_metrics(
+            {
+                "event": "context_status",
+                "status": status,
+                "reason": reason,
+                "token_estimate": int(token_estimate),
+                "full_tokens": int(usage_snapshot.get("full", 0)),
+                "summary_tokens": int(usage_snapshot.get("summary", 0)),
+                "compressed_tokens": int(usage_snapshot.get("compressed", 0)),
+            }
+        )
         
         blocks: List[str] = []
         if self.config.decision_block_enabled:
