@@ -108,8 +108,9 @@ def _sanitize_project(name: str) -> str:
 
 
 def _split_lines(value: str) -> list[str]:
+    normalized = (value or "").replace("\\r\\n", "\n").replace("\\n", "\n")
     parts = []
-    for line in re.split(r"[\\n;；]", value or ""):
+    for line in re.split(r"(?:\r?\n|[;；])+", normalized):
         item = line.strip(" -•\t")
         if item:
             parts.append(item)
