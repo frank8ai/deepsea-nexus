@@ -46,6 +46,8 @@
 - 复盘写回（规则库/反例库）
   - Invoke: 按SOP执行：复盘写回（规则库/反例库） <任务ID/决策卡>
   - File: resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md
+  - Quick Card: resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md
 - 多代理并行研究与合并
   - Invoke: 按SOP执行：多代理并行研究与合并 <问题>
   - File: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md
+  - Quick Card: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-quick-card.md

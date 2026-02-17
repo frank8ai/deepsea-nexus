@@ -28,12 +28,26 @@ All SOPs must satisfy the supreme standard stack in this order:
 - Scorecard template: `resources/sop/TEMPLATE.sop-scorecard.md`
 - Iteration log template: `resources/sop/TEMPLATE.sop-iteration-log.md`
 
+## System SOP Quick Cards
+- `resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md`
+- `resources/sop/2026-02/2026-02-17-multi-agent-research-merge-quick-card.md`
+
 ## Release Command
 Run before changing SOP status to `active`:
 
 ```bash
 python3 scripts/validate_sop_factory.py --sop <sop-file-path> --strict
 ```
+
+## Monthly KPI Dashboard
+Generate monthly trend dashboard from iteration logs:
+
+```bash
+python3 scripts/generate_sop_iteration_trends.py --month 2026-02
+```
+
+Default output:
+- `resources/sop/2026-02/2026-02-sop-iteration-kpi-dashboard.md`
 
 ## Example
 - SOP: `resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.md`

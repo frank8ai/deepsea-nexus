@@ -21,3 +21,14 @@
   - `resources/sop/2026-02/research-toolchain/`
 - Acceptance:
   - 29/29 strict pass (`python3 scripts/validate_sop_factory.py --sop <file> --strict`)
+
+## System SOP Operations Upgrade
+- Active SOPs:
+  - `resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md`
+  - `resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md`
+- One-page execution cards:
+  - `resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md`
+  - `resources/sop/2026-02/2026-02-17-multi-agent-research-merge-quick-card.md`
+- Monthly KPI dashboard:
+  - Script: `scripts/generate_sop_iteration_trends.py`
+  - Output: `resources/sop/2026-02/2026-02-sop-iteration-kpi-dashboard.md`

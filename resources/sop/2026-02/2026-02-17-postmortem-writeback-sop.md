@@ -117,4 +117,5 @@ Systematize dynamic learning by converting every completed task/decision into ve
 ## Links
 - Scorecard: resources/sop/2026-02/2026-02-17-postmortem-writeback-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-postmortem-writeback-iteration-log.md
+- Quick card: resources/sop/2026-02/2026-02-17-postmortem-writeback-quick-card.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md

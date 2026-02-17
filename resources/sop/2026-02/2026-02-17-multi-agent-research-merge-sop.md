@@ -131,4 +131,5 @@ Systematize exploration breadth by running parallel agent roles and merging resu
 ## Links
 - Scorecard: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-scorecard.md
 - Iteration log: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-iteration-log.md
+- Quick card: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-quick-card.md
 - Related decision cards: resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md
