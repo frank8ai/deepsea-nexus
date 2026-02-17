@@ -6,7 +6,7 @@
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.0
-- Status: active
+- Status: draft
 - Risk tier: low
 - Reversibility class: R1
 - Evidence tier at release: E2
@@ -108,8 +108,9 @@ Systematize dynamic learning by converting every completed task/decision into ve
 
 ## Release Readiness
 - Validation command:
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md --strict`
-- Release decision: approve
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md`  # draft OK
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md --strict`  # requires >=5 pilot runs
+- Release decision: hold
 - Approver: yizhi
 - Approval date: 2026-02-17
 

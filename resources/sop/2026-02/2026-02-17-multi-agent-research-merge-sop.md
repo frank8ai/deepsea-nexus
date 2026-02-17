@@ -6,7 +6,7 @@
 - Owner: yizhi
 - Team: deepsea-nexus
 - Version: v1.0
-- Status: active
+- Status: draft
 - Risk tier: medium
 - Reversibility class: R1
 - Evidence tier at release: E2
@@ -122,8 +122,9 @@ Systematize exploration breadth by running parallel agent roles and merging resu
 
 ## Release Readiness
 - Validation command:
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md --strict`
-- Release decision: approve
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md`  # draft OK
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md --strict`  # requires >=5 pilot runs
+- Release decision: hold
 - Approver: yizhi
 - Approval date: 2026-02-17
 
