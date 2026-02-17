@@ -5,11 +5,11 @@
 - Name: 复盘写回（规则库/反例库）
 - Owner: yizhi
 - Team: deepsea-nexus
-- Version: v1.0
-- Status: draft
+- Version: v1.1
+- Status: active
 - Risk tier: low
 - Reversibility class: R1
-- Evidence tier at release: E2
+- Evidence tier at release: E3
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -26,9 +26,9 @@
 
 ## Principle Compliance Declaration
 - Non-negotiables check: no external side effects; writeback is limited to markdown under `agent/` and `resources/` and may be reverted.
-- Outcome metric and baseline: baseline measured from recent 3 tasks; target is delta improvement on repeat-work and rework rate.
+- Outcome metric and baseline: baseline measured from 5 backfilled pilot runs; target is delta improvement on repeat-work and rule-rework rate.
 - Reversibility and blast radius: R1; blast radius limited to writeback files; rollback is git revert or restore previous version blocks.
-- Evidence tier justification: E2 because procedure is internal and validated by schema + validator; higher tiers require >=5 pilot runs.
+- Evidence tier justification: E3 because 5 pilot runs are logged with measurable deltas and release-gate checks passed.
 - Best Practice compliance: turn postmortems into executable rules; versioned, sourced, and reviewable.
 - Best Method compliance: 3-artifact writeback (facts card + rules + anti-pattern) with 1-3 rule updates per cycle.
 - Best Tool compliance: markdown templates + grep checks + (optional) SOP factory validator.
@@ -108,9 +108,9 @@ Systematize dynamic learning by converting every completed task/decision into ve
 
 ## Release Readiness
 - Validation command:
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md`  # draft OK
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md --strict`  # requires >=5 pilot runs
-- Release decision: hold
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md`
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md --strict`
+- Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
 

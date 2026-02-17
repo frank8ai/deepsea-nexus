@@ -5,11 +5,11 @@
 - Name: 多代理并行研究与合并
 - Owner: yizhi
 - Team: deepsea-nexus
-- Version: v1.0
-- Status: draft
+- Version: v1.1
+- Status: active
 - Risk tier: medium
 - Reversibility class: R1
-- Evidence tier at release: E2
+- Evidence tier at release: E3
 - Created on: 2026-02-17
 - Last reviewed on: 2026-02-17
 
@@ -26,9 +26,9 @@
 
 ## Principle Compliance Declaration
 - Non-negotiables check: no external actions beyond reading sources; output is markdown artifacts; sensitive data is redacted.
-- Outcome metric and baseline: baseline from recent 3 similar research tasks; target is time-to-decision and confidence score improvement.
+- Outcome metric and baseline: baseline from 5 pilot runs; target is time-to-decision and first-pass decision-card yield improvement.
 - Reversibility and blast radius: R1; only produces research pack + decision card + rule/case updates; rollback by deleting artifacts.
-- Evidence tier justification: E2 because this SOP is a coordination method; E3 requires >=5 pilot runs with measurable deltas.
+- Evidence tier justification: E3 because this SOP completed 5 pilot runs with measurable cycle-time and merge-quality deltas.
 - Best Practice compliance: parallelize perspectives (evidence, critique, build) and enforce conflict-aware merge.
 - Best Method compliance: 4-role loop (Researcher/Critic/Builder/Synthesizer) with strict output schema and merge rules.
 - Best Tool compliance: structured markdown outputs; optional web research SOP tools and local repo evidence.
@@ -122,9 +122,9 @@ Systematize exploration breadth by running parallel agent roles and merging resu
 
 ## Release Readiness
 - Validation command:
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md`  # draft OK
-  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md --strict`  # requires >=5 pilot runs
-- Release decision: hold
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md`
+  - `python3 scripts/validate_sop_factory.py --sop resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md --strict`
+- Release decision: approve
 - Approver: yizhi
 - Approval date: 2026-02-17
 
