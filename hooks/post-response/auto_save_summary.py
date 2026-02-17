@@ -8,11 +8,47 @@ import os
 import sys
 import json
 import re
+import subprocess
+import tempfile
 from datetime import datetime
 
 # 添加Deep-Sea Nexus路径
 NEXUS_PATH = "/Users/yizhi/.openclaw/workspace/skills/deepsea-nexus"
 sys.path.insert(0, NEXUS_PATH)
+
+def _write_summary_json(summary: dict, response: str, conversation_id: str, user_query: str) -> str:
+    """Write summary JSON to ~/.openclaw/logs/summaries and return path."""
+    fallback_dir = os.path.expanduser("~/.openclaw/logs/summaries")
+    os.makedirs(fallback_dir, exist_ok=True)
+    log_file = os.path.join(fallback_dir, f"{conversation_id}.json")
+    data = {
+        "timestamp": datetime.now().isoformat(),
+        "conversation_id": conversation_id,
+        "user_query": user_query,
+        "full_response": response,
+        "core_output": summary.get("本次核心产出", "") or summary.get("core_output", ""),
+        "tech_points": summary.get("技术要点", []) or summary.get("tech_points", []),
+        "code_pattern": summary.get("代码模式", "") or summary.get("code_pattern", ""),
+        "decision_context": summary.get("决策上下文", "") or summary.get("decision_context", ""),
+        "pitfall_record": summary.get("避坑记录", "") or summary.get("pitfall_record", ""),
+        "applicable_scene": summary.get("适用场景", "") or summary.get("applicable_scene", ""),
+        "search_keywords": summary.get("搜索关键词", []) or summary.get("search_keywords", []),
+        "project关联": summary.get("项目关联", "") or summary.get("project关联", "") or summary.get("project", ""),
+        "confidence": summary.get("置信度", "medium") or summary.get("confidence", "medium"),
+    }
+    with open(log_file, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return log_file
+
+
+def _maybe_write_warm(summary_path: str, project_name: str) -> None:
+    if not project_name:
+        return
+    warm_writer = os.path.join(NEXUS_PATH, "scripts", "warm_writer.py")
+    if not os.path.exists(warm_writer):
+        return
+    subprocess.run([sys.executable, warm_writer, "--from", summary_path], check=False)
+
 
 def main():
     # 从环境变量获取上下文
@@ -52,6 +88,12 @@ def main():
         
         if result['has_summary']:
             print(f"✅ 摘要已保存 | 对话: {conversation_id} | 存储: {result['stored_count']} 条")
+            # 解析结构化摘要并写入 Warm
+            _reply, summary = SummaryParser.parse(response)
+            if summary is not None:
+                summary_path = _write_summary_json(summary.to_dict(), response, conversation_id, user_query)
+                project_name = summary.to_dict().get("项目关联", "") or summary.to_dict().get("project关联", "")
+                _maybe_write_warm(summary_path, project_name)
         else:
             print(f"⚠️ 解析摘要失败 | 对话: {conversation_id}")
             
