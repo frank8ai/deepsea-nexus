@@ -1,4 +1,4 @@
-# P0 SOP 目录（12）
+# P0 SOP 目录（14）
 
 ## 工作（5）
 - 工作任务澄清与成功标准
@@ -41,3 +41,11 @@
 - 生活应急准备
   - Invoke: 按SOP执行：生活应急准备 <月度检查>
   - File: resources/sop/2026-02/2026-02-17-life-emergency-preparedness-sop.md
+
+## 系统（2）
+- 复盘写回（规则库/反例库）
+  - Invoke: 按SOP执行：复盘写回（规则库/反例库） <任务ID/决策卡>
+  - File: resources/sop/2026-02/2026-02-17-postmortem-writeback-sop.md
+- 多代理并行研究与合并
+  - Invoke: 按SOP执行：多代理并行研究与合并 <问题>
+  - File: resources/sop/2026-02/2026-02-17-multi-agent-research-merge-sop.md
