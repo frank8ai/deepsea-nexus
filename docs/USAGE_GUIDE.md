@@ -186,6 +186,25 @@ python scripts/para_recall.py --query "故障转移系统" --top-projects 3
 python scripts/openclaw_compaction_audit.py
 ```
 
+### 一键验收（OpenViking 风格链路）
+
+```bash
+TMP_OBS=/tmp/obsidian_para_smoke
+python scripts/para_init.py --obsidian "$TMP_OBS"
+cat > /tmp/para_smoke_summary.json <<'JSON'
+{
+  "core_output": "PARA 二脑 smoke",
+  "project": "SmokeProject",
+  "tech_points": ["para_recall", "warm_writer"],
+  "decision_context": "验证项目优先召回",
+  "next_actions": ["run tests", "update docs"]
+}
+JSON
+python scripts/warm_writer.py --from /tmp/para_smoke_summary.json --obsidian "$TMP_OBS"
+python scripts/para_validate.py --project SmokeProject --obsidian "$TMP_OBS" --max-age-minutes 999999
+python scripts/para_recall.py --query "PARA 二脑" --obsidian "$TMP_OBS" --top-projects 1
+```
+
 
 ### 其他工具脚本
 
