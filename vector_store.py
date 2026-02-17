@@ -9,12 +9,26 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 # 导入 ChromaDB
+# Prefer the workspace venv (.venv-nexus) if running under a different Python.
 try:
     import chromadb
     from chromadb.config import Settings
     CHROMA_AVAILABLE = True
 except ImportError:
-    CHROMA_AVAILABLE = False
+    # Attempt to add workspace venv site-packages to sys.path.
+    try:
+        _ws = os.path.expanduser("~/.openclaw/workspace")
+        _venv_lib = os.path.join(_ws, ".venv-nexus", "lib")
+        if os.path.isdir(_venv_lib):
+            for _name in os.listdir(_venv_lib):
+                _sp = os.path.join(_venv_lib, _name, "site-packages")
+                if os.path.isdir(_sp):
+                    sys.path.insert(0, _sp)
+        import chromadb  # type: ignore
+        from chromadb.config import Settings  # type: ignore
+        CHROMA_AVAILABLE = True
+    except Exception:
+        CHROMA_AVAILABLE = False
 
 
 @dataclass
