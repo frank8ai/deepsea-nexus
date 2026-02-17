@@ -1,5 +1,13 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.2.0 (2026-02-17)
+### 🧭 v4.2 - PARA Second Brain
+- ✅ Obsidian PARA init + templates
+- ✅ Warm writer (from structured summaries)
+- ✅ L0/L1/L2 layer files (.abstract/.overview/Warm)
+- ✅ Directory-recursive PARA recall (project-first)
+- ✅ Optional warm update hook via summary flush
+
 ## Version 4.1.1 (2026-02-16)
 ### 🧠 v4.1.1 - Observability + Resilience
 - ✅ SmartContext metrics log (summary/inject/graph/rescue/context status)

@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import glob
+import subprocess
 from datetime import datetime
 
 # Setup paths
@@ -24,6 +25,21 @@ except ImportError as e:
     sys.exit(1)
 
 SUMMARY_LOG_DIR = os.path.expanduser("~/.openclaw/logs/summaries")
+
+
+def maybe_write_warm(json_file: str) -> None:
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return
+    project = data.get("project关联") or data.get("项目关联") or data.get("project") or ""
+    if not project:
+        return
+    warm_writer = os.path.join(SCRIPT_DIR, "warm_writer.py")
+    if not os.path.exists(warm_writer):
+        return
+    subprocess.run([sys.executable, warm_writer, "--from", json_file], check=False)
 
 def main():
     if not os.path.exists(SUMMARY_LOG_DIR):
@@ -74,6 +90,7 @@ def main():
             
             if result.get('stored_count', 0) > 0:
                 print(f"✅ Successfully imported. Stored {result['stored_count']} items.")
+                maybe_write_warm(json_file)
                 os.remove(json_file)
                 success_count += 1
             else:
@@ -81,6 +98,7 @@ def main():
                 # If it didn't store anything, maybe it was empty or malformed.
                 # Consider deleting to avoid loop, or moving to 'failed' dir.
                 # For now, assume it's processed and remove.
+                maybe_write_warm(json_file)
                 os.remove(json_file)
                 success_count += 1
 

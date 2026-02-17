@@ -3,7 +3,15 @@
     "base": "/Users/yizhi/.openclaw/workspace",
     "archive_monthly": "memory/90_Memory/YYYY-MM",
     "inbox": "memory/00_Inbox",
-    "memory": "memory/90_Memory"
+    "memory": "memory/90_Memory",
+    "obsidian": "Obsidian",
+    "para": {
+      "projects": "Obsidian/10_Projects",
+      "knowledge": "Obsidian/20_Knowledge",
+      "areas": "Obsidian/20_Knowledge/Areas",
+      "resources": "Obsidian/20_Knowledge/Resources",
+      "archive": "Obsidian/20_Knowledge/Archive"
+    }
   },
   "logging": {
     "format": "%(asctime)s - %(levelname)s - %(message)s",
@@ -15,8 +23,8 @@
     "max_line_length": 80
   },
   "project": {
-    "version": "4.1.5",
-    "name": "Deep-Sea Nexus v4.1.5",
+    "version": "4.2.0",
+    "name": "Deep-Sea Nexus v4.2.0",
     "author": "OpenClaw"
   },
   "session": {

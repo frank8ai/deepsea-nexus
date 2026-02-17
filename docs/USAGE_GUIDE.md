@@ -158,6 +158,28 @@ python batch_chunk.py ../Obsidian --reset
 python batch_chunk.py --stats
 ```
 
+---
+
+## 第二大脑 PARA（v4.2）
+
+### 初始化 PARA 目录
+
+```bash
+python scripts/para_init.py --obsidian ~/Obsidian
+```
+
+### 会话摘要写入 Warm
+
+```bash
+python scripts/warm_writer.py --from ~/.openclaw/logs/summaries/xxx.json
+```
+
+### 目录递归检索（项目优先）
+
+```bash
+python scripts/para_recall.py --query "故障转移系统" --top-projects 3
+```
+
 ### 其他工具脚本
 
 ```bash

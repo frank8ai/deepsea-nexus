@@ -14,6 +14,11 @@ OpenClaw 没有自动调用 skill hooks 来保存对话摘要。
 0 * * * * cd ~/workspace/skills/deepsea-nexus && ./save_summary.sh "cron自动保存"
 ```
 
+可选：同时写入 PARA Warm（有项目关联时）
+```bash
+0 * * * * cd ~/workspace/skills/deepsea-nexus && python scripts/flush_summaries.py
+```
+
 ### 方案2: 手动命令
 
 每次对话后手动保存：
