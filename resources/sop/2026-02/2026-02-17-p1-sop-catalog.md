@@ -1,0 +1,26 @@
+# P1 SOP 目录（8）
+
+- 会议准备与行动闭环
+  - Invoke: 按SOP执行：会议准备与行动闭环 <会议主题>
+  - File: resources/sop/2026-02/2026-02-17-p1-meeting-pre-post-sop.md
+- 文档沉淀与知识归档
+  - Invoke: 按SOP执行：文档沉淀与知识归档 <主题>
+  - File: resources/sop/2026-02/2026-02-17-p1-documentation-capture-sop.md
+- 项目启动与范围风险对齐
+  - Invoke: 按SOP执行：项目启动与范围风险对齐 <项目名>
+  - File: resources/sop/2026-02/2026-02-17-p1-project-kickoff-sop.md
+- 周月复盘与规则更新
+  - Invoke: 按SOP执行：周月复盘与规则更新 <周期>
+  - File: resources/sop/2026-02/2026-02-17-p1-weekly-monthly-review-sop.md
+- 学习迁移与应用实践
+  - Invoke: 按SOP执行：学习迁移与应用实践 <学习主题>
+  - File: resources/sop/2026-02/2026-02-17-p1-learning-transfer-sop.md
+- 家庭协同与分工沟通
+  - Invoke: 按SOP执行：家庭协同与分工沟通 <本周任务>
+  - File: resources/sop/2026-02/2026-02-17-p1-family-collaboration-sop.md
+- 家务与周期维护
+  - Invoke: 按SOP执行：家务与周期维护 <任务清单>
+  - File: resources/sop/2026-02/2026-02-17-p1-home-maintenance-sop.md
+- 数字安全与备份权限管理
+  - Invoke: 按SOP执行：数字安全与备份权限管理 <资产清单>
+  - File: resources/sop/2026-02/2026-02-17-p1-digital-security-sop.md

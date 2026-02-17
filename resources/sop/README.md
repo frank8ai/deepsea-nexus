@@ -39,3 +39,6 @@ python3 scripts/validate_sop_factory.py --sop <sop-file-path> --strict
 - SOP: `resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.md`
 - Scorecard: `resources/sop/2026-02/2026-02-17-weekly-decision-review-scorecard.md`
 - Iteration log: `resources/sop/2026-02/2026-02-17-weekly-decision-review-iteration-log.md`
+- SOP: `resources/sop/2026-02/2026-02-17-sop-factory-production-sop.md`
+- Scorecard: `resources/sop/2026-02/2026-02-17-sop-factory-production-scorecard.md`
+- Iteration log: `resources/sop/2026-02/2026-02-17-sop-factory-production-iteration-log.md`

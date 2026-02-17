@@ -5,7 +5,7 @@
 - Name: Weekly Decision Review and Rule Update
 - Owner: yizhi
 - Team: deepsea-nexus
-- Version: v1.0
+- Version: v1.2
 - Status: active
 - Risk tier: medium
 - Reversibility class: R2
@@ -29,9 +29,9 @@
 - Outcome metric and baseline: cycle time baseline 52 min, target <= 30 min; first-pass yield baseline 68%, target >= 90%.
 - Reversibility and blast radius: process-only changes, rollback by reverting markdown and rule status.
 - Evidence tier justification: six pilot runs with measurable pass/fail outcomes satisfy E3 requirement.
-- Best Practice compliance: hard-gated review checklist plus source-linked rules.
-- Best Method compliance: weighted scorecard selection with explicit constraints.
-- Best Tool compliance: markdown and `rg` chosen as minimal tool chain for current SLA.
+- Best Practice compliance: hard-gated checklist review with explicit pass/fail.；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
+- Best Method compliance: batch review by threshold filters then 3-model comparison.；依据：Winner A=4.15，Runner-up=3.30，Margin=0.85，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
+- Best Tool compliance: markdown templates plus `rg` for fast field validation.；依据：增益[Markdown templates:immediate standardization；`rg`:fast presence checks；`git`:auditable iteration history]；回滚[Markdown templates->keep template strict and reviewed；`rg`->fallback to manual checklist；`git`->branch per cycle]；研究记录：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md。
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -59,10 +59,24 @@ Complete weekly review of active decision cards and publish 1-3 validated rule u
 - Output 2: weekly iteration log in `resources/sop/YYYY-MM/*-iteration-log.md`.
 
 ## Three-Optimal Decision
-- Best Practice selected: hard-gated checklist review with explicit pass/fail.
-- Best Method selected: batch review by threshold filters then 3-model comparison.
-- Best Tool selected: markdown templates plus `rg` for fast field validation.
+- Best Practice selected: hard-gated checklist review with explicit pass/fail.（依据：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md）
+- Best Method selected: batch review by threshold filters then 3-model comparison.（依据：Winner A=4.15，Margin=0.85）
+- Best Tool selected: markdown templates plus `rg` for fast field validation.（依据：resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md）
 - Scorecard reference: `resources/sop/2026-02/2026-02-17-weekly-decision-review-scorecard.md`
+
+## 三优原则研究与升级（Toolchain）
+- 研究日期: 2026-02-17
+- Search SOP工具: `/Users/yizhi/.openclaw/workspace/SOP/SOP_HQ_Web_Research.md`
+- Research SOP工具: `/Users/yizhi/.openclaw/workspace/SOP/SOP_HQ_Deep_Research.md`
+- 外部证据包: `resources/sop/2026-02/2026-02-17-sop-toolchain-research-pack.md`
+- 本SOP研究记录: `resources/sop/2026-02/research-toolchain/weekly-decision-review-toolchain-research.md`
+- 最佳实践: hard-gated checklist review with explicit pass/fail.
+- 最佳方法: batch review by threshold filters then 3-model comparison.（Winner A=4.15, Margin=0.85）
+- 最佳工具: markdown templates plus `rg` for fast field validation.
+- 本轮优化:
+  - 依据外部权威来源 + 内部scorecard双证据确定三优结论。
+  - 将三优结论回写到合规声明与执行段，避免只停留在描述层。
+  - 保留工具回滚路径，确保工具服务于方法与结果。
 
 ## Procedure
 | Step | Action | Quality Gate | Evidence |

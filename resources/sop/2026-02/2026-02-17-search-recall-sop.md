@@ -5,7 +5,7 @@
 - Name: Search Recall Execution
 - Owner: yizhi
 - Team: deepsea-nexus
-- Version: v1.0
+- Version: v1.2
 - Status: active
 - Risk tier: medium
 - Reversibility class: R2
@@ -29,9 +29,9 @@
 - Outcome metric and baseline: top1 relevance baseline 0.29 to target >= 0.35, first-pass success baseline 70% to target >= 85%.
 - Reversibility and blast radius: retrieval workflow only; rollback is immediate by reverting to single-pass recall path.
 - Evidence tier justification: 8 pilot runs with measurable relevance and latency outcomes meet E3 requirement.
-- Best Practice compliance: use source-linked results with relevance thresholds and explicit fallback flow.
-- Best Method compliance: two-pass query strategy selected by weighted score under latency and quality constraints.
-- Best Tool compliance: `nexus_recall`, `smart_search`, and `rg` selected as minimal viable toolchain.
+- Best Practice compliance: evidence-linked semantic recall with threshold gates and fallback.；依据：PRISMA 2020:https://www.bmj.com/content/372/bmj.n71；PRISMA-S:https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z；NIST Information Quality:https://www.nist.gov/director/nist-information-quality-standards；研究记录：resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md。
+- Best Method compliance: two-pass recall (original query, then expansion if gate fails).；依据：Winner B=4.40，Runner-up=3.80，Margin=0.60，硬约束=passed；研究记录：resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md。
+- Best Tool compliance: `nexus_recall` for primary recall, `smart_search` for trigger-aware expansion, `rg` for source validation.；依据：增益[`nexus_recall`:consistent baseline retrieval；`smart_search`:improved first relevant hit rate；`rg`:fast local evidence validation]；回滚[`nexus_recall`->fallback to single-pass only；`smart_search`->disable expansion path；`rg`->manual source check]；研究记录：resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md。
 - Compliance reviewer: yizhi
 
 ## Objective
@@ -61,10 +61,24 @@ Return high-confidence recall results for user queries with explicit source evid
 - Output 2: search quality record (latency, relevance, pass/fail gate decision).
 
 ## Three-Optimal Decision
-- Best Practice selected: evidence-linked semantic recall with threshold gates and fallback.
-- Best Method selected: two-pass recall (original query, then expansion if gate fails).
-- Best Tool selected: `nexus_recall` for primary recall, `smart_search` for trigger-aware expansion, `rg` for source validation.
+- Best Practice selected: evidence-linked semantic recall with threshold gates and fallback.（依据：resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md）
+- Best Method selected: two-pass recall (original query, then expansion if gate fails).（依据：Winner B=4.40，Margin=0.60）
+- Best Tool selected: `nexus_recall` for primary recall, `smart_search` for trigger-aware expansion, `rg` for source validation.（依据：resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md）
 - Scorecard reference: `resources/sop/2026-02/2026-02-17-search-recall-scorecard.md`
+
+## 三优原则研究与升级（Toolchain）
+- 研究日期: 2026-02-17
+- Search SOP工具: `/Users/yizhi/.openclaw/workspace/SOP/SOP_HQ_Web_Research.md`
+- Research SOP工具: `/Users/yizhi/.openclaw/workspace/SOP/SOP_HQ_Deep_Research.md`
+- 外部证据包: `resources/sop/2026-02/2026-02-17-sop-toolchain-research-pack.md`
+- 本SOP研究记录: `resources/sop/2026-02/research-toolchain/search-recall-toolchain-research.md`
+- 最佳实践: evidence-linked semantic recall with threshold gates and fallback.
+- 最佳方法: two-pass recall (original query, then expansion if gate fails).（Winner B=4.40, Margin=0.60）
+- 最佳工具: `nexus_recall` for primary recall, `smart_search` for trigger-aware expansion, `rg` for source validation.
+- 本轮优化:
+  - 依据外部权威来源 + 内部scorecard双证据确定三优结论。
+  - 将三优结论回写到合规声明与执行段，避免只停留在描述层。
+  - 保留工具回滚路径，确保工具服务于方法与结果。
 
 ## Procedure
 | Step | Action | Quality Gate | Evidence |
