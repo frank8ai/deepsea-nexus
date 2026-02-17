@@ -64,6 +64,18 @@ python3 scripts/generate_sop_iteration_trends.py --month 2026-02
 Default output:
 - `resources/sop/2026-02/2026-02-sop-iteration-kpi-dashboard.md`
 
+## Internet + Web3 Bundle Generator
+Generate the full 20-SOP bundle (SOP/scorecard/iteration/research/L0/L1):
+
+```bash
+python3 scripts/generate_internet_web3_sops.py
+```
+
+Outputs:
+- Catalog: `resources/sop/2026-02/2026-02-17-internet-web3-sop-catalog.md`
+- Research pack: `resources/sop/2026-02/2026-02-17-internet-web3-sop-toolchain-research-pack.md`
+- Iteration report: `resources/sop/2026-02/2026-02-17-internet-web3-sop-iteration-report.md`
+
 ## Example
 - SOP: `resources/sop/2026-02/2026-02-17-weekly-decision-review-sop.md`
 - Scorecard: `resources/sop/2026-02/2026-02-17-weekly-decision-review-scorecard.md`

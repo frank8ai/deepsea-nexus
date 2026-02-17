@@ -46,3 +46,20 @@
   - L0/L1 assets: 31 `.abstract.md` + 31 `.overview.md`
 - Acceptance:
   - 31/31 strict pass (`python3 scripts/validate_sop_factory.py --sop <file> --strict`)
+
+## Internet + Web3 SOP Bundle
+- Catalog:
+  - `resources/sop/2026-02/2026-02-17-internet-web3-sop-catalog.md`
+- External evidence pack:
+  - `resources/sop/2026-02/2026-02-17-internet-web3-sop-toolchain-research-pack.md`
+- Iteration report:
+  - `resources/sop/2026-02/2026-02-17-internet-web3-sop-iteration-report.md`
+- Generator script:
+  - `scripts/generate_internet_web3_sops.py`
+- Artifacts generated:
+  - 20 SOP + 20 scorecards + 20 iteration logs
+  - 20 research notes
+  - 20 L0 abstracts + 20 L1 overviews
+- Acceptance:
+  - 20/20 strict pass (`python3 scripts/validate_sop_factory.py --sop <file> --strict`)
+  - 51/51 strict pass after merge with existing SOP set
