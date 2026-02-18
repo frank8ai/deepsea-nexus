@@ -34,6 +34,14 @@ These standards are non-compensatory and must be applied top-down:
 4. Auto-downgrade gate
    - If monthly trend degrades for 2 consecutive cycles on primary result metric, status must move `active -> draft`.
 
+## Factory Auto-Injection Rule (mandatory)
+- SOP Factory must inject and verify the full governance stack for every candidate SOP before pilot:
+  - Supreme standard stack items 1-7 (non-compensatory, top-down).
+  - Four hard mechanisms (lifecycle fields, kill switch, dual-track metrics, auto-downgrade gate).
+- Injection is considered complete only when:
+  - Candidate SOP includes all required sections and non-empty declaration fields.
+  - Strict validator passes on the candidate SOP.
+
 ## Objective
 Turn repeatable work into measurable SOPs with explicit artifacts, hard gates, and iteration control.
 

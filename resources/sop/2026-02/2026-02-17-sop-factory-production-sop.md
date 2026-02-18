@@ -8,7 +8,7 @@
 - Primary outputs: SOP artifact triplet (`sop.md`, `scorecard.md`, `iteration-log.md`) with release decision; strict validation evidence and 1-3 rule updates for next cycle
 - Owner: yizhi
 - Team: deepsea-nexus
-- Version: v1.2
+- Version: v1.3
 - Status: active
 - Risk tier: medium
 - Reversibility class: R2
@@ -43,7 +43,7 @@
 - Compliance reviewer: yizhi
 
 ## Objective
-Produce or upgrade repeatable SOPs into active status in one controlled cycle with strict, machine-verifiable release quality.
+Produce or upgrade repeatable SOPs into active status in one controlled cycle with strict, machine-verifiable release quality, and mandatory direct injection of the supreme standard stack plus four hard mechanisms.
 
 ## Scope and Boundaries
 - In scope: SOP candidate classification, baseline capture, scorecard selection, SOP authoring, pilot review, and strict release validation.
@@ -94,10 +94,11 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 | 1 | Classify candidate and confirm SOP routing | Frequency >= 3/month and CV <= 0.20 are recorded | routing note |
 | 2 | Capture baseline from recent runs | at least 3 baseline samples exist for cycle time, FPY, rework | baseline table |
 | 3 | Build three-optimal scorecard and select method | winner score >= 3.50 and margin >= 0.20 or documented override | scorecard |
-| 4 | Author SOP v1 from template with all hard fields | trigger, inputs/outputs, exceptions, rollback, SLA all filled | SOP draft |
-| 5 | Run pilot and produce iteration log | at least 5 pilot runs logged and 1-3 rules updated | iteration log |
-| 6 | Run strict validator and resolve failures | `validate_sop_factory.py --strict` exit code is 0 | validation output |
-| 7 | Release decision and indexing | release decision is approve and links are valid | release section |
+| 4 | Inject supreme standard stack and four hard mechanisms into the candidate SOP before drafting details | all seven principle declarations and all four mechanisms are explicitly present and testable | governance injection checklist |
+| 5 | Author SOP v1 from template with all hard fields | trigger, inputs/outputs, exceptions, rollback, SLA all filled | SOP draft |
+| 6 | Run pilot and produce iteration log | at least 5 pilot runs logged and 1-3 rules updated | iteration log |
+| 7 | Run strict validator and resolve failures | `validate_sop_factory.py --strict` exit code is 0 | validation output |
+| 8 | Release decision and indexing | release decision is approve and links are valid | release section |
 
 ## Exceptions
 | Scenario | Detection Signal | Response | Escalation |
@@ -151,4 +152,3 @@ Produce or upgrade repeatable SOPs into active status in one controlled cycle wi
 - Related decision cards: `resources/decisions/2026-02/2026-02-17-closed-loop-pilot.md`
 - L0 abstract: resources/sop/2026-02/2026-02-17-sop-factory-production-sop.abstract.md
 - L1 overview: resources/sop/2026-02/2026-02-17-sop-factory-production-sop.overview.md
-
