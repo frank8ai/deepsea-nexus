@@ -18,6 +18,16 @@ from .event_bus import get_event_bus, EventBus, EventTypes
 logger = logging.getLogger(__name__)
 
 
+class _AsyncNullLock:
+    """No-op async lock used when no event loop is available yet."""
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
 class PluginState(Enum):
     """Plugin lifecycle states"""
     REGISTERED = auto()      # Registered but not initialized
@@ -208,7 +218,20 @@ class PluginRegistry:
         self._metadata: Dict[str, PluginMetadata] = {}
         self._states: Dict[str, PluginState] = {}
         self._event_bus: Optional[EventBus] = None
+        self._lock: Optional[asyncio.Lock] = None
+        self._null_lock = _AsyncNullLock()
+
+    def _get_lock(self):
+        """Create asyncio lock lazily in an active event loop."""
+        if self._lock is not None:
+            return self._lock
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            # Some sync test paths construct the registry before creating an event loop.
+            return self._null_lock
         self._lock = asyncio.Lock()
+        return self._lock
     
     def set_event_bus(self, event_bus: EventBus) -> None:
         """Set the global event bus"""
@@ -253,7 +276,7 @@ class PluginRegistry:
         Returns:
             bool: True if loaded successfully
         """
-        async with self._lock:
+        async with self._get_lock():
             if name not in self._plugins:
                 logger.error(f"Plugin {name} is not registered")
                 return False
@@ -307,7 +330,7 @@ class PluginRegistry:
         Returns:
             bool: True if unloaded successfully
         """
-        async with self._lock:
+        async with self._get_lock():
             if name not in self._plugins:
                 return False
             

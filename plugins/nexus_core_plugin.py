@@ -5,16 +5,17 @@ Refactored NexusCore using Plugin architecture.
 Simplified core with storage abstraction and unified compression.
 """
 
-import sys
+import importlib.util
+import json
 import os
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
-from functools import lru_cache
+import re
+import time
+import uuid
+from typing import List, Dict, Any, Optional, Set
 
-from ..core.plugin_system import NexusPlugin, PluginMetadata
+from ..core.plugin_system import NexusPlugin, PluginMetadata, PluginState
 from ..core.event_bus import EventTypes
-from ..core.config_manager import get_config_manager
-from ..storage.base import RecallResult, StorageResult
+from ..storage.base import RecallResult
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,6 +46,22 @@ class NexusCorePlugin(NexusPlugin):
         self._vector_backend = None
         self._config = None
         self._available = False
+        self._vector_available = False
+        self._vector_reason = ""
+
+        # Runtime capabilities and observability
+        self._capabilities: Dict[str, Any] = {}
+        self._metrics_path: Optional[str] = None
+
+        # Hybrid retrieval controls
+        self._hybrid_enabled = True
+        self._hybrid_min_hits = 2
+        self._hybrid_lexical_boost = 0.15
+
+        # In-memory lexical cache (degraded mode + hybrid补全)
+        self._lexical_docs: Dict[str, Dict[str, Any]] = {}
+        self._lexical_order: List[str] = []
+        self._lexical_max_docs = 5000
 
         # Optional vNext brain hook (feature-flagged)
         self._brain_enabled = False
@@ -52,26 +69,123 @@ class NexusCorePlugin(NexusPlugin):
         self._brain_mode = "facts"
         self._brain_min_score = 0.2
         self._brain_merge = "append"  # append|replace
+
+    def _detect_capabilities(self) -> Dict[str, Any]:
+        def _has_module(name: str) -> bool:
+            try:
+                return importlib.util.find_spec(name) is not None
+            except Exception:
+                return False
+
+        return {
+            "chromadb": _has_module("chromadb"),
+            "sentence_transformers": _has_module("sentence_transformers"),
+            "yaml": _has_module("yaml"),
+        }
+
+    def _resolve_metrics_path(self, config: Dict[str, Any]) -> Optional[str]:
+        base_path = ""
+        if isinstance(config, dict):
+            paths = config.get("paths", {}) if isinstance(config.get("paths", {}), dict) else {}
+            nexus_cfg = config.get("nexus", {}) if isinstance(config.get("nexus", {}), dict) else {}
+            base_path = (
+                paths.get("base")
+                or config.get("base_path")
+                or config.get("workspace_root")
+                or nexus_cfg.get("base_path", "")
+            )
+        if not base_path:
+            return None
+        try:
+            base_path = os.path.expanduser(str(base_path))
+            log_dir = os.path.join(base_path, "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            return os.path.join(log_dir, "nexus_core_metrics.log")
+        except Exception:
+            return None
+
+    def _append_metrics(self, payload: Dict[str, Any]) -> None:
+        if not self._metrics_path:
+            return
+        try:
+            payload.setdefault("ts", time.time())
+            with open(self._metrics_path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        except Exception:
+            return
+
+    def _tokenize(self, text: str) -> Set[str]:
+        return {t for t in re.findall(r"[\w\u4e00-\u9fff]+", (text or "").lower()) if t}
+
+    def _remember_lexical(self, doc_id: str, content: str, metadata: Optional[Dict[str, Any]]) -> None:
+        did = (doc_id or str(uuid.uuid4())[:8]).strip()
+        meta = metadata or {}
+        self._lexical_docs[did] = {
+            "doc_id": did,
+            "content": content or "",
+            "metadata": meta,
+            "tokens": self._tokenize(content or ""),
+            "source": str(meta.get("title", did)),
+        }
+        self._lexical_order.append(did)
+        if len(self._lexical_order) > self._lexical_max_docs:
+            stale = self._lexical_order.pop(0)
+            self._lexical_docs.pop(stale, None)
+
+    def _lexical_recall(self, query: str, n: int) -> List[RecallResult]:
+        q_tokens = self._tokenize(query)
+        if not q_tokens:
+            return []
+        scored: List[RecallResult] = []
+        for item in self._lexical_docs.values():
+            overlap = len(q_tokens & item["tokens"])
+            if overlap <= 0:
+                continue
+            base = overlap / float(max(1, len(q_tokens)))
+            if query and query.lower() in item["content"].lower():
+                base = min(1.0, base + self._hybrid_lexical_boost)
+            scored.append(
+                RecallResult(
+                    content=item["content"],
+                    source=item["source"],
+                    relevance=round(float(base), 3),
+                    metadata={"origin": "lexical", **(item.get("metadata") or {})},
+                    doc_id=item["doc_id"],
+                )
+            )
+        scored.sort(key=lambda r: r.relevance, reverse=True)
+        return scored[: max(0, int(n))]
     
     async def initialize(self, config: Dict[str, Any]) -> bool:
         """Initialize Nexus Core"""
         try:
-            # Prefer in-repo implementation (no extra sys.path surgery).
-            try:
-                from ..vector_store_legacy import create_vector_store
-                self._available = True
-            except Exception as e:
-                logger.warning(f"Vector store backend not available: {e}")
-                self._available = False
-                # Still return True - we can work in degraded mode
-                return True
-            
+            self._available = True
+            self._capabilities = self._detect_capabilities()
+            self._metrics_path = self._resolve_metrics_path(config if isinstance(config, dict) else {})
+
+            nexus_cfg = config.get("nexus", {}) if isinstance(config.get("nexus", {}), dict) else {}
+            recall_cfg = config.get("recall", {}) if isinstance(config.get("recall", {}), dict) else {}
+            retrieval_cfg = config.get("retrieval", {}) if isinstance(config.get("retrieval", {}), dict) else {}
+
             # Load configuration
             self._config = {
-                "vector_db_path": config.get("nexus", {}).get("vector_db_path"),
-                "embedder_name": config.get("nexus", {}).get("embedder_name", "all-MiniLM-L6-v2"),
-                "cache_size": config.get("recall", {}).get("cache_size", 128),
+                "vector_db_path": nexus_cfg.get("vector_db_path"),
+                "embedder_name": nexus_cfg.get("embedder_name", "all-MiniLM-L6-v2"),
+                "cache_size": recall_cfg.get("cache_size", 128),
             }
+            self._hybrid_enabled = bool(retrieval_cfg.get("hybrid_enabled", True))
+            self._hybrid_min_hits = max(1, int(retrieval_cfg.get("hybrid_min_hits", 2)))
+            self._hybrid_lexical_boost = float(retrieval_cfg.get("hybrid_lexical_boost", 0.15))
+            self._lexical_max_docs = max(200, int(retrieval_cfg.get("lexical_cache_max_docs", 5000)))
+
+            # Prefer in-repo implementation (no extra sys.path surgery).
+            create_vector_store = None
+            try:
+                from ..vector_store_legacy import create_vector_store as _create_vector_store
+                create_vector_store = _create_vector_store
+            except Exception as e:
+                self._vector_reason = f"vector_store_legacy import failed: {e}"
+                logger.warning(self._vector_reason)
 
             # Optional brain hook config
             brain_cfg = config.get("brain", {}) if isinstance(config, dict) else {}
@@ -139,15 +253,39 @@ class NexusCorePlugin(NexusPlugin):
                     self._brain_available = False
                     logger.warning(f"Brain hook enable failed; continuing without brain: {e}")
 
-            # Initialize vector store if available
-            if self._available:
+            if create_vector_store is not None:
                 logger.info("🔄 Initializing vector store...")
+                try:
+                    store = create_vector_store(config)
+                    self._vector_backend = store
+                    self._vector_available = not bool(getattr(store, "is_fallback", False))
+                    fallback_reason = str(getattr(store, "reason", "") or "").strip()
+                    if fallback_reason:
+                        self._vector_reason = fallback_reason
+                    stats = await self._get_stats()
+                    if self._vector_available:
+                        logger.info(f"✓ Nexus Core ready ({stats.get('total_documents', 0)} documents)")
+                    else:
+                        logger.warning(
+                            "Nexus Core running in degraded vector mode: "
+                            f"{self._vector_reason or 'fallback backend'}"
+                        )
+                except Exception as e:
+                    self._vector_backend = None
+                    self._vector_available = False
+                    self._vector_reason = str(e)
+                    logger.warning(f"Vector store init failed, degraded mode enabled: {e}")
 
-                store = create_vector_store(config)
-                self._vector_backend = store
-
-                stats = await self._get_stats()
-                logger.info(f"✓ Nexus Core ready ({stats.get('total_documents', 0)} documents)")
+            self._append_metrics(
+                {
+                    "event": "nexus_init",
+                    "vector_available": bool(self._vector_available),
+                    "vector_reason": self._vector_reason,
+                    "brain_enabled": bool(self._brain_enabled and self._brain_available),
+                    "hybrid_enabled": bool(self._hybrid_enabled),
+                    "capabilities": self._capabilities,
+                }
+            )
 
             return True
             
@@ -171,32 +309,31 @@ class NexusCorePlugin(NexusPlugin):
     # Core API Methods
     
     async def search_recall(self, query: str, n: int = 5) -> List[RecallResult]:
-        """Semantic search, optionally augmented by brain store (feature-flagged)."""
+        """Semantic search with optional brain augmentation and lexical fallback."""
+        started_at = time.time()
+        query = (query or "").strip()
+        if not query:
+            return []
+
         out: List[RecallResult] = []
+        vector_results: List[RecallResult] = []
+        lexical_results: List[RecallResult] = []
+        vector_error = ""
 
         # 1) Brain recall (optional)
         if self._brain_enabled and self._brain_available:
             try:
                 from ..brain.api import brain_retrieve
 
-                # Determine how many brain results to pull based on merge strategy
-                if self._brain_merge == "replace":
-                    brain_limit = max(1, n)
-                else:
-                    # append mode: only fill gaps later
-                    brain_limit = max(1, n)
-
+                brain_limit = max(1, n)
                 for rec in brain_retrieve(
                     query=query,
                     mode=self._brain_mode,
                     limit=brain_limit,
                     min_score=self._brain_min_score,
                 ):
-                    # Brain results get capped relevance to avoid overriding high-confidence vector hits
                     brain_score = float(rec.get("score", 0.65))
-                    # Cap brain relevance at 0.85 to leave headroom for vector results
                     relevance = min(0.85, brain_score * 1.2)
-
                     out.append(
                         RecallResult(
                             content=str(rec.get("content", "")),
@@ -216,80 +353,101 @@ class NexusCorePlugin(NexusPlugin):
             except Exception as e:
                 logger.warning(f"Brain recall failed; continuing without brain: {e}")
 
-        # 2) Vector recall (existing behavior)
-        if not self._available or not self._vector_backend:
-            # If vector backend is down, still allow brain-only recall.
-            return sorted(out, key=lambda r: r.relevance, reverse=True)[:n]
-
-        vector_results: List[RecallResult] = []
-        try:
-            backend = self._vector_backend
-
-            if isinstance(backend, dict) and "recall" in backend:
-                recall = backend["recall"]
-                results = recall.search(query, n_results=n)
-
-                vector_results = [
-                    RecallResult(
-                        content=r.content,
-                        source=r.metadata.get('title', r.doc_id),
-                        relevance=r.relevance_score,
-                        metadata={"origin": "vector", **(r.metadata or {})},
-                        doc_id=r.doc_id,
-                    )
-                    for r in results
-                ]
-            else:
-                # VectorStore wrapper path
-                raw = backend.search(query=query, n_results=n)
-                docs = (raw or {}).get("documents") or [[]]
-                metas = (raw or {}).get("metadatas") or [[]]
-                ids = (raw or {}).get("ids") or [[]]
-                dists = (raw or {}).get("distances") or [[]]
-
-                for i in range(min(n, len(docs[0]) if docs else 0)):
-                    content = docs[0][i]
-                    meta = metas[0][i] if metas and metas[0] and i < len(metas[0]) else {}
-                    doc_id = ids[0][i] if ids and ids[0] and i < len(ids[0]) else ""
-                    dist = dists[0][i] if dists and dists[0] and i < len(dists[0]) else None
-                    # Convert distance -> pseudo relevance (best-effort). If missing, default 0.5.
-                    relevance = 0.5 if dist is None else max(0.0, 1.0 - float(dist))
-
-                    vector_results.append(
+        # 2) Vector recall
+        backend = self._vector_backend
+        if backend is not None:
+            try:
+                if isinstance(backend, dict) and "recall" in backend:
+                    recall = backend["recall"]
+                    results = recall.search(query, n_results=n)
+                    vector_results = [
                         RecallResult(
-                            content=str(content),
-                            source=str((meta or {}).get("title", doc_id or "doc")),
-                            relevance=float(relevance),
-                            metadata={"origin": "vector", **(meta or {})},
-                            doc_id=str(doc_id),
+                            content=r.content,
+                            source=r.metadata.get("title", r.doc_id),
+                            relevance=r.relevance_score,
+                            metadata={"origin": "vector", **(r.metadata or {})},
+                            doc_id=r.doc_id,
                         )
-                    )
+                        for r in results
+                    ]
+                else:
+                    raw = backend.search(query=query, n_results=n)
+                    docs = (raw or {}).get("documents") or [[]]
+                    metas = (raw or {}).get("metadatas") or [[]]
+                    ids = (raw or {}).get("ids") or [[]]
+                    dists = (raw or {}).get("distances") or [[]]
 
-        except Exception as e:
-            logger.error(f"Search error: {e}")
+                    count = min(n, len(docs[0]) if docs else 0)
+                    for i in range(count):
+                        content = docs[0][i]
+                        meta = metas[0][i] if metas and metas[0] and i < len(metas[0]) else {}
+                        doc_id = ids[0][i] if ids and ids[0] and i < len(ids[0]) else ""
+                        dist = dists[0][i] if dists and dists[0] and i < len(dists[0]) else None
+                        relevance = 0.5 if dist is None else max(0.0, 1.0 - float(dist))
+                        vector_results.append(
+                            RecallResult(
+                                content=str(content),
+                                source=str((meta or {}).get("title", doc_id or "doc")),
+                                relevance=float(relevance),
+                                metadata={"origin": "vector", **(meta or {})},
+                                doc_id=str(doc_id),
+                            )
+                        )
+            except Exception as e:
+                vector_error = str(e)
+                logger.warning(f"Vector search failed; fallback continues: {e}")
+
+        # 3) Lexical fallback/hybrid补全
+        need_lexical = self._hybrid_enabled and (
+            (not self._vector_available)
+            or len(vector_results) < min(self._hybrid_min_hits, max(1, n))
+        )
+        if need_lexical:
+            lexical_results = self._lexical_recall(query, n=max(1, n))
 
         # Merge strategy:
-        # - replace: brain-only (vector ignored)
-        # - append (default): vector primary, brain fills gaps / adds extra if vector empty
+        # - replace: brain-only
+        # - append: vector/lexical primary, brain fills gaps
         merged: List[RecallResult]
         if self._brain_enabled and self._brain_available and self._brain_merge == "replace":
             merged = out
         else:
             merged = list(vector_results)
+            for r in lexical_results:
+                if len(merged) >= n:
+                    break
+                merged.append(r)
             if len(merged) < n:
                 merged.extend(out)
             elif not merged:
                 merged = out
 
-        # De-dupe by (source, content) keeping highest relevance
         dedup: Dict[str, RecallResult] = {}
         for r in merged:
-            key = f"{r.source}\n{r.content}".strip()
+            key = (r.doc_id or "").strip()
+            if not key:
+                key = f"{r.source}\n{r.content}".strip()
             existing = dedup.get(key)
             if existing is None or r.relevance > existing.relevance:
                 dedup[key] = r
 
-        return sorted(dedup.values(), key=lambda r: r.relevance, reverse=True)[:n]
+        final_results = sorted(dedup.values(), key=lambda r: r.relevance, reverse=True)[:n]
+        self._append_metrics(
+            {
+                "event": "recall",
+                "query_len": len(query),
+                "n": int(n),
+                "vector_hits": len(vector_results),
+                "lexical_hits": len(lexical_results),
+                "brain_hits": len(out),
+                "final_hits": len(final_results),
+                "vector_available": bool(self._vector_available),
+                "vector_error": vector_error,
+                "used_lexical": bool(need_lexical),
+                "duration_ms": int((time.time() - started_at) * 1000),
+            }
+        )
+        return final_results
     
     # Alias for backward compatibility
     search = search_recall
@@ -311,6 +469,14 @@ class NexusCorePlugin(NexusPlugin):
         Returns:
             str: Document ID on success, None on failure
         """
+        resolved_id = (doc_id or str(uuid.uuid4())[:8]).strip()
+        metadata = {"title": title or "Untitled"}
+        if tags:
+            metadata["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
+
+        # Always keep an in-memory lexical copy for hybrid fallback.
+        self._remember_lexical(resolved_id, content, metadata)
+
         # Optional brain write (best-effort; does not block vector write)
         if self._brain_enabled and self._brain_available:
             try:
@@ -336,10 +502,10 @@ class NexusCorePlugin(NexusPlugin):
 
                 brain_write(
                     {
-                        "id": doc_id or "",
+                        "id": resolved_id,
                         "kind": inferred_kind,
                         "priority": priority,
-                        "source": title or doc_id or "nexus",
+                        "source": title or resolved_id or "nexus",
                         "tags": tag_list,
                         "content": content,
                     }
@@ -347,48 +513,60 @@ class NexusCorePlugin(NexusPlugin):
             except Exception as e:
                 logger.warning(f"Brain write failed; continuing without brain: {e}")
 
-        if not self._available or not self._vector_backend:
-            logger.warning("Vector backend not available")
-            return None
+        backend = self._vector_backend
+        vector_written = False
+        write_error = ""
 
         try:
-            # Support both legacy dict backends and the newer VectorStore wrapper.
-            backend = self._vector_backend
-
-            metadata = {"title": title or "Untitled"}
-            if tags:
-                metadata["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
-
-            if isinstance(backend, dict) and "manager" in backend:
-                manager = backend["manager"]
-                new_id = manager.add_note(
-                    content=content,
-                    metadata=metadata,
-                    note_id=doc_id,
-                )
-            else:
-                # VectorStore wrapper path
-                import uuid
-
-                new_id = doc_id or str(uuid.uuid4())[:8]
-                backend.add(
-                    documents=[content],
-                    ids=[new_id],
-                    metadatas=[metadata],
-                )
+            if backend is not None:
+                if isinstance(backend, dict) and "manager" in backend:
+                    manager = backend["manager"]
+                    new_id = manager.add_note(
+                        content=content,
+                        metadata=metadata,
+                        note_id=resolved_id,
+                    )
+                    if new_id:
+                        resolved_id = str(new_id)
+                    vector_written = True
+                else:
+                    backend.add(
+                        documents=[content],
+                        ids=[resolved_id],
+                        metadatas=[metadata],
+                    )
+                    vector_written = True
 
             # Emit event
             await self.emit(EventTypes.DOCUMENT_ADDED, {
-                "doc_id": new_id,
+                "doc_id": resolved_id,
                 "title": title,
                 "tags": tags,
             })
 
-            return new_id
+            self._append_metrics(
+                {
+                    "event": "add_document",
+                    "doc_id": resolved_id,
+                    "vector_written": bool(vector_written),
+                    "vector_available": bool(self._vector_available),
+                }
+            )
+            return resolved_id
             
         except Exception as e:
-            logger.error(f"Add document error: {e}")
-            return None
+            write_error = str(e)
+            logger.warning(f"Add document degraded to lexical-only mode: {e}")
+            self._append_metrics(
+                {
+                    "event": "add_document",
+                    "doc_id": resolved_id,
+                    "vector_written": False,
+                    "vector_available": bool(self._vector_available),
+                    "error": write_error,
+                }
+            )
+            return resolved_id
     
     async def add_documents(self, documents: List[Dict[str, str]], 
                            batch_size: int = 10) -> List[str]:
@@ -424,55 +602,76 @@ class NexusCorePlugin(NexusPlugin):
     
     async def get_document(self, doc_id: str) -> Optional[Dict[str, Any]]:
         """Get a document by ID"""
-        if not self._available or not self._vector_backend:
-            return None
-        
-        try:
-            manager = self._vector_backend['manager']
-            # Implementation depends on backend
-            return None
-        except Exception as e:
-            logger.error(f"Get document error: {e}")
-            return None
+        if doc_id in self._lexical_docs:
+            item = self._lexical_docs[doc_id]
+            return {
+                "id": item["doc_id"],
+                "content": item["content"],
+                "metadata": item.get("metadata", {}),
+            }
+        return None
     
     async def delete_document(self, doc_id: str) -> bool:
         """Delete a document"""
-        if not self._available or not self._vector_backend:
-            return False
-        
+        deleted = False
         try:
-            manager = self._vector_backend['manager']
-            # Implementation depends on backend
+            if doc_id in self._lexical_docs:
+                self._lexical_docs.pop(doc_id, None)
+                deleted = True
+            backend = self._vector_backend
+            if backend is not None and hasattr(backend, "delete"):
+                backend.delete(ids=[doc_id])
+                deleted = True
             await self.emit(EventTypes.DOCUMENT_DELETED, {"doc_id": doc_id})
-            return True
+            self._append_metrics({"event": "delete_document", "doc_id": doc_id, "deleted": bool(deleted)})
+            return deleted
         except Exception as e:
             logger.error(f"Delete document error: {e}")
-            return False
+            return deleted
     
     async def _get_stats(self) -> Dict[str, Any]:
         """Get internal stats"""
-        if not self._available or not self._vector_backend:
-            return {"total_documents": 0, "status": "unavailable"}
-        
+        lexical_count = len(self._lexical_docs)
+        if not self._vector_backend:
+            return {
+                "total_documents": lexical_count,
+                "vector_documents": 0,
+                "lexical_documents": lexical_count,
+                "status": "degraded" if lexical_count else "unavailable",
+            }
+
         backend = self._vector_backend
         try:
             if isinstance(backend, dict) and "recall" in backend:
                 recall = backend["recall"]
                 stats = recall.get_recall_stats()
                 return {
-                    "total_documents": stats.get("total_documents", 0),
+                    "total_documents": int(stats.get("total_documents", 0)) or lexical_count,
+                    "vector_documents": int(stats.get("total_documents", 0)),
+                    "lexical_documents": lexical_count,
                     "collection_name": stats.get("collection_name", "N/A"),
                     "status": "active" if self.state == PluginState.ACTIVE else "inactive",
                 }
 
             # VectorStore wrapper
             return {
-                "total_documents": int(getattr(backend, "count", 0)),
+                "total_documents": int(getattr(backend, "count", 0)) or lexical_count,
+                "vector_documents": int(getattr(backend, "count", 0)),
+                "lexical_documents": lexical_count,
                 "collection_name": getattr(backend, "collection_name", "deepsea_nexus"),
-                "status": "active" if self.state == PluginState.ACTIVE else "inactive",
+                "status": (
+                    "degraded"
+                    if bool(getattr(backend, "is_fallback", False))
+                    else "active" if self.state == PluginState.ACTIVE else "inactive"
+                ),
             }
         except Exception:
-            return {"total_documents": 0, "status": "error"}
+            return {
+                "total_documents": lexical_count,
+                "vector_documents": 0,
+                "lexical_documents": lexical_count,
+                "status": "error",
+            }
     
     def stats(self) -> Dict[str, Any]:
         """Get public stats"""
@@ -480,36 +679,32 @@ class NexusCorePlugin(NexusPlugin):
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                # In async context, just return basic stats
-                if self._vector_backend:
-                    manager = self._vector_backend.get('manager')
-                    if manager:
-                        try:
-                            stats = manager.get_stats()
-                            return {
-                                "total_documents": stats.get("total_documents", 0),
-                                "collection_name": stats.get("collection_name", "deepsea_nexus_full"),
-                                "status": "active" if self.state == PluginState.ACTIVE else "inactive",
-                            }
-                        except:
-                            pass
-                return {"total_documents": 0, "status": "estimating"}
+                return {
+                    "total_documents": len(self._lexical_docs),
+                    "vector_available": bool(self._vector_available),
+                    "status": "estimating",
+                }
             else:
                 return loop.run_until_complete(self._get_stats())
         except Exception:
-            # Return cached estimate if available
-            if self._vector_backend:
-                return {"total_documents": 2219, "status": "cached"}
-            return {"total_documents": 0, "status": "error"}
+            return {
+                "total_documents": len(self._lexical_docs),
+                "vector_available": bool(self._vector_available),
+                "status": "cached",
+            }
     
     def health(self) -> Dict[str, Any]:
         """Get health status"""
         return {
             "available": self._available,
+            "vector_available": self._vector_available,
+            "vector_reason": self._vector_reason,
             "initialized": self._vector_backend is not None,
             "documents": self.stats().get("total_documents", 0),
             "state": self.state.name,
             "version": "3.0.0",
+            "capabilities": self._capabilities,
+            "hybrid_enabled": self._hybrid_enabled,
         }
     
     # NOTE: Compression methods REMOVED

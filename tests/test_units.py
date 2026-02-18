@@ -213,6 +213,15 @@ class TestBackwardCompatibility(unittest.TestCase):
         if doc_id is not None:
             self.assertIsInstance(doc_id, str)
 
+    def test_degraded_recall_still_works(self):
+        """Recall should still return usable results when vector backend is degraded."""
+        self.assertTrue(nexus_init())
+        doc_id = nexus_add("Fallback lexical memory for degraded mode", "FallbackDoc", "fallback,test")
+        self.assertIsInstance(doc_id, str)
+        results = nexus_recall("degraded fallback lexical", n=5)
+        self.assertIsInstance(results, list)
+        self.assertTrue(any("fallback" in (r.content or "").lower() for r in results))
+
 
 class TestPluginSystem(unittest.TestCase):
     """Test Plugin System"""

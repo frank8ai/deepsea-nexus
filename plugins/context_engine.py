@@ -186,6 +186,8 @@ class ContextEngine:
         self._build_stats: List[Dict[str, Any]] = []
         self._pending_config_updates: Dict[str, Any] = {}
         self._last_persist_ts = 0.0
+        self._last_trim_reason = "none"
+        self._last_trim_before_tokens = 0
 
     def _call_nexus(self, method_name: str, *args, **kwargs):
         core = self.nexus_core
@@ -513,10 +515,10 @@ class ContextEngine:
     
     def _search_vector_store(self, query: str, n: int) -> List[Dict]:
         """搜索向量库"""
+        started = datetime.now().timestamp()
         try:
             results = self._call_nexus("search_recall", query, n) or []
-            
-            return [
+            out = [
                 {
                     "content": r.content,
                     "source": r.source,
@@ -525,8 +527,51 @@ class ContextEngine:
                 }
                 for r in results
             ]
+            fallback_used = False
+            if not out:
+                keywords = self.extract_keywords(query, max_count=min(3, n))
+                merged: List[Dict[str, Any]] = []
+                seen = set()
+                for kw in keywords:
+                    for item in self._call_nexus("search_recall", kw, max(1, n // 2)) or []:
+                        key = f"{getattr(item, 'source', '')}\n{getattr(item, 'content', '')}".strip()
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        merged.append(
+                            {
+                                "content": getattr(item, "content", ""),
+                                "source": getattr(item, "source", ""),
+                                "relevance": getattr(item, "relevance", 0.0),
+                                "metadata": getattr(item, "metadata", {}) or {},
+                            }
+                        )
+                if merged:
+                    out = sorted(merged, key=lambda x: x.get("relevance", 0), reverse=True)[: max(1, n)]
+                    fallback_used = True
+
+            self._append_metrics(
+                {
+                    "event": "vector_search",
+                    "query_len": len(query or ""),
+                    "requested": int(n),
+                    "hits": len(out),
+                    "fallback_used": bool(fallback_used),
+                    "duration_ms": int((datetime.now().timestamp() - started) * 1000),
+                }
+            )
+            return out
         except Exception as e:
             print(f"向量库搜索失败: {e}")
+            self._append_metrics(
+                {
+                    "event": "vector_search_error",
+                    "query_len": len(query or ""),
+                    "requested": int(n),
+                    "error": str(e),
+                    "duration_ms": int((datetime.now().timestamp() - started) * 1000),
+                }
+            )
             return []
     
     def _build_context(self, results: List[Dict], query: str) -> str:
@@ -664,12 +709,17 @@ class ContextEngine:
 
     def _trim_to_budget(self, text: str, max_tokens: int) -> str:
         if max_tokens <= 0:
+            self._last_trim_reason = "disabled"
+            self._last_trim_before_tokens = 0
             return text
         est = self._estimate_tokens(text)
+        self._last_trim_before_tokens = int(est)
         if est <= max_tokens:
+            self._last_trim_reason = "none"
             return text
         ratio = max_tokens / float(max(est, 1))
         max_chars = max(200, int(len(text) * ratio))
+        self._last_trim_reason = "token_budget"
         return text[:max_chars].rstrip() + "..."
 
     def _estimate_tokens(self, text: str) -> int:
@@ -740,6 +790,8 @@ class ContextEngine:
                 "budget_tokens": int(budget.max_tokens),
                 "budget_items": int(budget.max_items),
                 "budget_lines": int(budget.max_lines_total),
+                "trim_reason": self._last_trim_reason,
+                "tokens_before_trim": int(self._last_trim_before_tokens),
             }
         )
         self._record_build_stats(token_est, items_used, config)
@@ -935,6 +987,8 @@ class ContextEnginePlugin(NexusPlugin):
                 self._engine = ContextEngine(nexus_core)
             else:
                 self._engine = ContextEngine()
+            if self._engine:
+                self._engine._metrics_path = self._engine._resolve_metrics_path(config)
             
             return True
         except Exception as e:

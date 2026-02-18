@@ -8,6 +8,8 @@ Run all tests for the hot-pluggable architecture.
 import subprocess
 import sys
 import os
+import importlib
+import importlib.util
 from pathlib import Path
 from typing import Optional
 
@@ -62,6 +64,35 @@ def run_command(cmd, description):
         return False
 
 
+def get_runtime_capabilities() -> dict:
+    """Detect optional dependencies to make test behavior explicit."""
+    def _has_module(name: str) -> bool:
+        try:
+            return importlib.util.find_spec(name) is not None
+        except Exception:
+            return False
+
+    return {
+        "chromadb": _has_module("chromadb"),
+        "sentence_transformers": _has_module("sentence_transformers"),
+        "yaml": _has_module("yaml"),
+    }
+
+
+def _import_deepsea_nexus():
+    """Import helper that tolerates path ordering differences."""
+    try:
+        import deepsea_nexus
+        return deepsea_nexus
+    except ImportError:
+        skills_parent = str(Path(__file__).resolve().parent.parent)
+        if skills_parent not in sys.path:
+            sys.path.insert(0, skills_parent)
+        importlib.invalidate_caches()
+        import deepsea_nexus
+        return deepsea_nexus
+
+
 def run_python_tests():
     """Run Python unit and integration tests"""
     tests_dir = Path(__file__).parent / "tests"
@@ -112,7 +143,7 @@ def check_code_quality():
 
     # Check imports work
     try:
-        import deepsea_nexus
+        deepsea_nexus = _import_deepsea_nexus()
         print("   ✅ Main import works")
         
         # Check key functions exist
@@ -148,7 +179,7 @@ def validate_architecture():
                 return True
     
     try:
-        import deepsea_nexus
+        deepsea_nexus = _import_deepsea_nexus()
         
         # Test app creation
         app = deepsea_nexus.create_app()
@@ -193,6 +224,12 @@ def main():
         return reexec_code
     print("🚀 Deep-Sea Nexus v3.0 Test Suite")
     print("=" * 50)
+    caps = get_runtime_capabilities()
+    print(
+        "🧩 Runtime capabilities: "
+        f"chromadb={'yes' if caps['chromadb'] else 'no'}, "
+        f"sentence_transformers={'yes' if caps['sentence_transformers'] else 'no'}"
+    )
     
     # Change to the skills directory
     skills_dir = Path(__file__).parent

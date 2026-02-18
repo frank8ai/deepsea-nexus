@@ -282,6 +282,14 @@ class SmartContextPlugin(NexusPlugin):
                 )
             self._metrics_path = self._resolve_metrics_path(config)
             self._config_path = self._resolve_config_path()
+            self._append_metrics(
+                {
+                    "event": "smart_context_init",
+                    "inject_enabled": bool(self.config.inject_enabled),
+                    "adaptive_enabled": bool(self.config.adaptive_enabled),
+                    "graph_enabled": bool(self._graph_enabled),
+                }
+            )
             
             print(f"✅ SmartContext 初始化完成 (规则: {self.config.full_rounds}轮完整/{self.config.summary_rounds}轮摘要/{self.config.compress_after_rounds}轮压缩)")
             return True
@@ -1158,6 +1166,12 @@ class SmartContextPlugin(NexusPlugin):
         if not self._nexus_core:
             if self.config.inject_debug:
                 print("[SmartContext] INJECT skip nexus_core=missing")
+            self._append_metrics(
+                {
+                    "event": "inject_skip",
+                    "reason": "nexus_core_missing",
+                }
+            )
             return []
         
         try:
@@ -1168,6 +1182,14 @@ class SmartContextPlugin(NexusPlugin):
             if self.config.inject_dynamic_enabled:
                 fetch_n = max(fetch_n, int(self.config.inject_dynamic_max_items))
             results = self._call_nexus("search_recall", user_message, fetch_n) or []
+            if not results:
+                self._append_metrics(
+                    {
+                        "event": "inject_empty",
+                        "reason": reason,
+                        "query_len": len(user_message or ""),
+                    }
+                )
             items: List[Dict[str, Any]] = []
             for r in results:
                 metadata = getattr(r, "metadata", {}) or {}

@@ -158,6 +158,12 @@
     "tiered_limits": [3, 2, 1],
     "dedupe_on_recall": true
   },
+  "retrieval": {
+    "hybrid_enabled": true,
+    "hybrid_min_hits": 2,
+    "hybrid_lexical_boost": 0.15,
+    "lexical_cache_max_docs": 5000
+  },
   "optional": {
     "cross_date_search": true,
     "rag_enabled": true,
