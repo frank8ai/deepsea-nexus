@@ -1,5 +1,5 @@
 """
-Tests for Smart Context v4.3.1 upgrade artifacts.
+Tests for Smart Context v4.4.0 upgrade artifacts.
 """
 
 import json

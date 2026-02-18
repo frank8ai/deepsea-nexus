@@ -29,7 +29,7 @@ Modules:
     - scripts: Automation tools
 """
 
-__version__ = "4.3.1"
+__version__ = "4.4.0"
 __author__ = "Deep-Sea Nexus Team"
 
 try:

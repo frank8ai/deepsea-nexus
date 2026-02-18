@@ -571,7 +571,7 @@ class SmartContextPlugin(NexusPlugin):
         if not self._metrics_path:
             return
         try:
-            payload.setdefault("schema_version", "4.3.1")
+            payload.setdefault("schema_version", "4.4.0")
             payload.setdefault("component", "smart_context")
             payload.setdefault("event", "unknown")
             payload.setdefault("ts", datetime.now().isoformat())

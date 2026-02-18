@@ -1,4 +1,4 @@
-# Deep-Sea Nexus v4.3.1 使用指南
+# Deep-Sea Nexus v4.4.0 使用指南
 
 > 说明：本文保留 v2 兼容说明，同时已适配 v4.x（插件模式优先，`config.json` 推荐）。
 > 核心逻辑零依赖，可选组件（sentence-transformers / chromadb）存在即用、缺失自动降级。
@@ -161,7 +161,7 @@ python batch_chunk.py --stats
 
 ---
 
-## 第二大脑 PARA（v4.3.1）
+## 第二大脑 PARA（v4.4.0）
 
 ### 初始化 PARA 目录
 
@@ -187,7 +187,7 @@ python scripts/para_recall.py --query "故障转移系统" --top-projects 3
 python scripts/openclaw_compaction_audit.py
 ```
 
-### Smart Context 工件模板与检查（v4.3.1）
+### Smart Context 工件模板与检查（v4.4.0）
 
 ```bash
 # 1) 拷贝模板
@@ -201,7 +201,7 @@ python scripts/validate_research_artifacts.py \
   --strict
 ```
 
-### Smart Context Digest 与安全 Cron（v4.3.1）
+### Smart Context Digest 与安全 Cron（v4.4.0）
 
 ```bash
 # 手动生成报告（仅报告，不危险动作）

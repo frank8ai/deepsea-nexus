@@ -3,7 +3,7 @@
 目标：把 Deep-Sea Nexus 的结构化摘要、向量检索与 Obsidian PARA 体系结合，形成“可执行第二大脑”。
 
 ## 完成状态（基于历史提交与实测）
-当前状态：`已完成开发并可用`（v4.3.1）。
+当前状态：`已完成开发并可用`（v4.4.0）。
 
 关键提交：
 - `4fa3290`：新增 PARA 二脑主流程（初始化、检索、Warm 写入、文档）
@@ -58,7 +58,7 @@ python scripts/para_validate.py --project "YourProject" --max-age-minutes 120
 - `scripts/flush_summaries.py`：自动存入向量库并按 project 更新 Warm 卡片
 - `scripts/install_safe_cron.sh`：一键安装/移除推荐 cron
 
-详见：`docs/SMART_CONTEXT_V4_3_1.md`
+详见：`docs/SMART_CONTEXT_V4_4_0.md`
 
 ## 常见坑
 - `warm_writer.py` 识别项目名优先使用 `project`/`project_name` 等字段；仅写 `project_association` 可能被归到 `Untitled`。

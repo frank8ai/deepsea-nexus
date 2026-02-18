@@ -5,8 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="${NEXUS_PYTHON_PATH:-python3}"
 MODE="${1:---install}"
 
-BEGIN_MARK="# BEGIN deepsea-nexus-v4.3.1"
-END_MARK="# END deepsea-nexus-v4.3.1"
+BEGIN_MARK="# BEGIN deepsea-nexus-v4.4.0"
+END_MARK="# END deepsea-nexus-v4.4.0"
 
 CRON_BLOCK=$(cat <<CRON
 ${BEGIN_MARK}
@@ -30,7 +30,7 @@ cleaned="$(printf '%s\n' "$existing" | awk -v begin="$BEGIN_MARK" -v end="$END_M
 
 if [[ "$MODE" == "--remove" ]]; then
   printf '%s\n' "$cleaned" | crontab -
-  echo "[cron] removed deepsea-nexus-v4.3.1 block"
+  echo "[cron] removed deepsea-nexus-v4.4.0 block"
   exit 0
 fi
 
@@ -42,5 +42,5 @@ fi
 new_cron+="$CRON_BLOCK"
 
 printf '%s\n' "$new_cron" | crontab -
-echo "[cron] installed deepsea-nexus-v4.3.1 block"
-crontab -l | sed -n '/deepsea-nexus-v4.3.1/,+8p'
+echo "[cron] installed deepsea-nexus-v4.4.0 block"
+crontab -l | sed -n '/deepsea-nexus-v4.4.0/,+8p'

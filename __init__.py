@@ -1,8 +1,8 @@
 """
-Deep-Sea Nexus v4.3.1
+Deep-Sea Nexus v4.4.0
 AI Agent Long-term Memory System - Hot-Pluggable Architecture
 
-v4.3.1 patch highlights:
+v4.4.0 patch highlights:
 - Degraded vector mode when chromadb is unavailable
 - Hybrid recall (vector + lexical fallback + optional brain merge)
 - Runtime capability/recall telemetry for fast diagnosis
@@ -34,7 +34,7 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "4.3.1"
+__version__ = "4.4.0"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================

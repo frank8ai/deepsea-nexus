@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validate Deep Research Pack/Card artifacts for Smart Context v4.3.1.
+Validate Deep Research Pack/Card artifacts for Smart Context v4.4.0.
 
 Usage:
   python scripts/validate_research_artifacts.py --pack <pack.md> --card <card.md> --strict

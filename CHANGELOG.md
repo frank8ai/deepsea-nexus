@@ -1,5 +1,14 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.4.0 (2026-02-18)
+### 🧠 v4.4.0 - Smart Context Completion Release
+- ✅ 将 Smart Context 全链路从 4.3.1 正式提升到 4.4.0（代码/配置/文档/脚本统一）
+- ✅ `schema_version` 统一为 `4.4.0`（`smart_context` / `context_engine` / `nexus_core`）
+- ✅ 安全 cron 标识升级为 `deepsea-nexus-v4.4.0`
+- ✅ 发布文档入口统一到 `docs/SMART_CONTEXT_V4_4_0.md`
+- ✅ second-brain HQ Pack/Card 严格校验通过（`validate_research_artifacts.py --strict`）
+- ✅ 回归测试通过（`run_tests.py`）
+
 ## Version 4.3.1 (2026-02-18)
 ### 🧠 v4.3.1 - Smart Context Upgrade (Option B+)
 - ✅ Deep Research artifact templates:
