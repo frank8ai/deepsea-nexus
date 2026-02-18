@@ -1,7 +1,8 @@
-# Deep-Sea Nexus v4.0 使用指南
+# Deep-Sea Nexus v4.3 使用指南
 
-> 说明：本文保留 v2 兼容说明，同时已适配 v4.0（插件模式优先，`config.json` 推荐）。
+> 说明：本文保留 v2 兼容说明，同时已适配 v4.x（插件模式优先，`config.json` 推荐）。
 > 核心逻辑零依赖，可选组件（sentence-transformers / chromadb）存在即用、缺失自动降级。
+> 本地部署流程见：`docs/LOCAL_DEPLOY.md`。
 
 ## 目录
 
@@ -160,7 +161,7 @@ python batch_chunk.py --stats
 
 ---
 
-## 第二大脑 PARA（v4.2）
+## 第二大脑 PARA（v4.3）
 
 ### 初始化 PARA 目录
 

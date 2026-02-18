@@ -23,8 +23,8 @@
     "max_line_length": 80
   },
   "project": {
-    "version": "4.2.0",
-    "name": "Deep-Sea Nexus v4.2.0",
+    "version": "4.3.0",
+    "name": "Deep-Sea Nexus v4.3.0",
     "author": "OpenClaw"
   },
   "session": {

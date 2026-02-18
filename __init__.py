@@ -1,21 +1,15 @@
 """
-Deep-Sea Nexus v4.1
+Deep-Sea Nexus v4.3
 AI Agent Long-term Memory System - Hot-Pluggable Architecture
 
-v4.1 New Features:
-- Light knowledge graph for decision blocks
-- Graph + vector hybrid recall
-- Adaptive inject tuning (self-correcting threshold)
-- Optional real embeddings with graceful fallback
-- Usage-aware recall ranking + dedupe
-- Tiered recall + novelty gate for smarter memory
-- Sync bridge for async core (compat + plugin)
-- Structured Summary v2.0 (9 fields for smarter knowledge accumulation)
-- Context-aware AI reasoning
-- Enhanced semantic retrieval with keyword indexing
-- JSON-based structured summaries
+v4.3 patch highlights:
+- Degraded vector mode when chromadb is unavailable
+- Hybrid recall (vector + lexical fallback + optional brain merge)
+- Runtime capability/recall telemetry for fast diagnosis
+- Python 3.8-safe plugin registry lock behavior
+- Stable test gate under missing optional dependencies
 
-New API (v4.1 - Recommended):
+New API (v4.x - Recommended):
     from deepsea_nexus import create_app
     
     app = create_app()
@@ -39,7 +33,7 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "4.1.5"
+__version__ = "4.3.0"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================

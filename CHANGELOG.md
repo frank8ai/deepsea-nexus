@@ -1,5 +1,15 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.3.0 (2026-02-18)
+### 🛡️ v4.3 - Degraded Stability + Hybrid Recall
+- ✅ Degraded vector mode when `chromadb` is unavailable (service stays usable)
+- ✅ Hybrid retrieval path (vector + lexical fallback + optional brain merge)
+- ✅ Python 3.8-safe plugin lock initialization in `PluginRegistry`
+- ✅ Plugin lifecycle state sync (`registry` 与 `plugin.state` 一致)
+- ✅ Extended observability: recall/path metrics + context trim/search fallback metrics
+- ✅ Test gate stabilization (`run_tests.py` runtime capability probe + robust import path)
+- ✅ Local deploy script and runbook (`scripts/deploy_local_v4.sh`, `docs/LOCAL_DEPLOY.md`)
+
 ## Version 4.2.0 (2026-02-17)
 ### 🧭 v4.2 - PARA Second Brain
 - ✅ Obsidian PARA init + templates

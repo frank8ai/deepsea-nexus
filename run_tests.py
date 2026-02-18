@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deep-Sea Nexus v3.0 Test Runner
+Deep-Sea Nexus Test Runner
 
 Run all tests for the hot-pluggable architecture.
 """
@@ -222,7 +222,7 @@ def main():
     reexec_code = _maybe_reexec_in_venv()
     if reexec_code is not None:
         return reexec_code
-    print("🚀 Deep-Sea Nexus v3.0 Test Suite")
+    print("🚀 Deep-Sea Nexus Test Suite (v4.3 release gate)")
     print("=" * 50)
     caps = get_runtime_capabilities()
     print(
@@ -265,7 +265,7 @@ def main():
         print("   ✓ Architecture validation: PASS")
         print("   ✓ Code quality: PASS") 
         print("   ✓ Python tests: RUN")
-        print("\n🎉 Deep-Sea Nexus v3.0 is ready!")
+        print("\n🎉 Deep-Sea Nexus is ready!")
         return 0
     else:
         print("❌ SOME TESTS FAILED")

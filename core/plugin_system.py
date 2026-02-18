@@ -296,28 +296,33 @@ class PluginRegistry:
             # Initialize
             try:
                 self._states[name] = PluginState.INITIALIZING
+                plugin.state = PluginState.INITIALIZING
                 
                 success = await plugin.initialize(config)
                 if not success:
                     self._states[name] = PluginState.ERROR
+                    plugin.state = PluginState.ERROR
                     return False
                 
                 # Start
                 success = await plugin.start()
                 if success:
                     self._states[name] = PluginState.ACTIVE
+                    plugin.state = PluginState.ACTIVE
                     plugin._health.start_time = datetime.now()
                     await plugin._emit_plugin_event("loaded")
                     logger.info(f"✓ Plugin loaded: {name}")
                     return True
                 else:
                     self._states[name] = PluginState.ERROR
+                    plugin.state = PluginState.ERROR
                     return False
                     
             except Exception as e:
                 logger.error(f"✗ Failed to load plugin {name}: {e}")
                 plugin._record_error(e)
                 self._states[name] = PluginState.ERROR
+                plugin.state = PluginState.ERROR
                 return False
     
     async def unload(self, name: str) -> bool:
@@ -344,21 +349,25 @@ class PluginRegistry:
             
             try:
                 self._states[name] = PluginState.UNLOADING
+                plugin.state = PluginState.UNLOADING
                 
                 success = await plugin.stop()
                 if success:
                     self._states[name] = PluginState.UNLOADED
+                    plugin.state = PluginState.UNLOADED
                     await plugin._emit_plugin_event("unloaded")
                     logger.info(f"✓ Plugin unloaded: {name}")
                     return True
                 else:
                     self._states[name] = PluginState.ERROR
+                    plugin.state = PluginState.ERROR
                     return False
                     
             except Exception as e:
                 logger.error(f"✗ Error unloading plugin {name}: {e}")
                 plugin._record_error(e)
                 self._states[name] = PluginState.ERROR
+                plugin.state = PluginState.ERROR
                 return False
     
     async def reload(self, name: str, new_config: Dict[str, Any]) -> bool:
@@ -380,6 +389,7 @@ class PluginRegistry:
         
         if success:
             self._states[name] = PluginState.ACTIVE
+            plugin.state = PluginState.ACTIVE
         
         return success
     
