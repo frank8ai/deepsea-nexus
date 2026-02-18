@@ -744,7 +744,12 @@ class ContextEngine:
     def _resolve_metrics_path(self, config: Optional[Dict[str, Any]]) -> Optional[str]:
         if not isinstance(config, dict):
             return None
-        base_path = config.get("paths", {}).get("base")
+        paths = config.get("paths", {}) if isinstance(config.get("paths", {}), dict) else {}
+        base_path = (
+            paths.get("base")
+            or config.get("base_path")
+            or config.get("workspace_root")
+        )
         if not base_path:
             return None
         base_path = os.path.expanduser(base_path)
@@ -756,6 +761,9 @@ class ContextEngine:
         if not self._metrics_path:
             return
         try:
+            payload.setdefault("schema_version", "4.3.1")
+            payload.setdefault("component", "context_engine")
+            payload.setdefault("event", "unknown")
             payload.setdefault("ts", datetime.now().isoformat())
             with open(self._metrics_path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(payload, ensure_ascii=False) + "\n")

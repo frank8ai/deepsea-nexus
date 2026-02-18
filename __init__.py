@@ -1,13 +1,14 @@
 """
-Deep-Sea Nexus v4.3
+Deep-Sea Nexus v4.3.1
 AI Agent Long-term Memory System - Hot-Pluggable Architecture
 
-v4.3 patch highlights:
+v4.3.1 patch highlights:
 - Degraded vector mode when chromadb is unavailable
 - Hybrid recall (vector + lexical fallback + optional brain merge)
 - Runtime capability/recall telemetry for fast diagnosis
 - Python 3.8-safe plugin registry lock behavior
 - Stable test gate under missing optional dependencies
+- Smart Context artifacts templates + validator + safe digest cron
 
 New API (v4.x - Recommended):
     from deepsea_nexus import create_app
@@ -33,7 +34,7 @@ Features:
 - 100% backward compatible
 """
 
-__version__ = "4.3.0"
+__version__ = "4.3.1"
 __author__ = "Deep-Sea Nexus Team"
 
 # =============================================================================

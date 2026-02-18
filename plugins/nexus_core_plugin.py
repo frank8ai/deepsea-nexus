@@ -11,6 +11,7 @@ import os
 import re
 import time
 import uuid
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Set
 
 from ..core.plugin_system import NexusPlugin, PluginMetadata, PluginState
@@ -95,7 +96,7 @@ class NexusCorePlugin(NexusPlugin):
                 or nexus_cfg.get("base_path", "")
             )
         if not base_path:
-            return None
+            base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         try:
             base_path = os.path.expanduser(str(base_path))
             log_dir = os.path.join(base_path, "logs")
@@ -108,7 +109,11 @@ class NexusCorePlugin(NexusPlugin):
         if not self._metrics_path:
             return
         try:
+            payload.setdefault("schema_version", "4.3.1")
+            payload.setdefault("component", "nexus_core")
+            payload.setdefault("event", "unknown")
             payload.setdefault("ts", time.time())
+            payload.setdefault("ts_iso", datetime.now().isoformat())
             with open(self._metrics_path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
         except Exception:

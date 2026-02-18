@@ -1,4 +1,4 @@
-# Deep-Sea Nexus v4.3 本地部署
+# Deep-Sea Nexus v4.3.1 本地部署
 
 ## 目标
 将当前仓库版本部署到本地 OpenClaw 工作区，并确保门禁与运行态可用。
@@ -25,7 +25,13 @@ bash scripts/deploy_local_v4.sh --full
   - `available: true`
   - `initialized: true`
   - `plugin_version: "3.0.0"`（插件协议版本）
-  - `package_version: "4.3.0"`（发布版本）
+  - `package_version: "4.3.1"`（发布版本）
+
+## 可选：安装 Smart Context 安全 cron
+```bash
+bash scripts/install_safe_cron.sh --install
+```
+说明：该 cron 仅生成 digest 报告并执行 summary flush，不做对外动作。
 
 ## 常见问题
 - `chromadb` 未安装：

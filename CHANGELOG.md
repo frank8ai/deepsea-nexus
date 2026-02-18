@@ -1,5 +1,20 @@
 # Changelog - Deep-Sea Nexus v4.x
 
+## Version 4.3.1 (2026-02-18)
+### 🧠 v4.3.1 - Smart Context Upgrade (Option B+)
+- ✅ Deep Research artifact templates:
+  - `resources/sop/TEMPLATE.deep-research-pack.md`
+  - `resources/sop/TEMPLATE.deep-research-card.md`
+  - `resources/sop/TEMPLATE.structured-summary-v3.1.json`
+- ✅ Strict artifact validator: `scripts/validate_research_artifacts.py`
+- ✅ Safe digest generator (report-only): `scripts/smart_context_digest.py`
+- ✅ Safe cron installer/remover: `scripts/install_safe_cron.sh`
+- ✅ Metrics schema alignment (`schema_version=4.3.1`) across:
+  - `smart_context`
+  - `context_engine`
+  - `nexus_core`
+- ✅ Context engine metrics path fallback aligned with workspace/base_path resolution
+
 ## Version 4.3.0 (2026-02-18)
 ### 🛡️ v4.3 - Degraded Stability + Hybrid Recall
 - ✅ Degraded vector mode when `chromadb` is unavailable (service stays usable)

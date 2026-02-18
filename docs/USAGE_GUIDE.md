@@ -1,4 +1,4 @@
-# Deep-Sea Nexus v4.3 使用指南
+# Deep-Sea Nexus v4.3.1 使用指南
 
 > 说明：本文保留 v2 兼容说明，同时已适配 v4.x（插件模式优先，`config.json` 推荐）。
 > 核心逻辑零依赖，可选组件（sentence-transformers / chromadb）存在即用、缺失自动降级。
@@ -161,7 +161,7 @@ python batch_chunk.py --stats
 
 ---
 
-## 第二大脑 PARA（v4.3）
+## 第二大脑 PARA（v4.3.1）
 
 ### 初始化 PARA 目录
 
@@ -185,6 +185,33 @@ python scripts/para_recall.py --query "故障转移系统" --top-projects 3
 
 ```bash
 python scripts/openclaw_compaction_audit.py
+```
+
+### Smart Context 工件模板与检查（v4.3.1）
+
+```bash
+# 1) 拷贝模板
+cp resources/sop/TEMPLATE.deep-research-pack.md SOP/research/$(date +%F)/<topic>-deep-research-pack.md
+cp resources/sop/TEMPLATE.deep-research-card.md 90_Memory/$(date +%F)/<topic>-deep-research-card.md
+
+# 2) 严格检查
+python scripts/validate_research_artifacts.py \
+  --pack SOP/research/$(date +%F)/<topic>-deep-research-pack.md \
+  --card 90_Memory/$(date +%F)/<topic>-deep-research-card.md \
+  --strict
+```
+
+### Smart Context Digest 与安全 Cron（v4.3.1）
+
+```bash
+# 手动生成报告（仅报告，不危险动作）
+python scripts/smart_context_digest.py --mode morning
+python scripts/smart_context_digest.py --mode progress
+python scripts/smart_context_digest.py --mode nightly
+
+# 安装/移除 cron
+bash scripts/install_safe_cron.sh --install
+bash scripts/install_safe_cron.sh --remove
 ```
 
 ### 一键验收（OpenViking 风格链路）

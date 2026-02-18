@@ -1,8 +1,8 @@
-# 🧠 Deep-Sea Nexus v4.3
+# 🧠 Deep-Sea Nexus v4.3.1
 
 ## AI Agent 长期记忆系统 - 热插拔架构
 
-**版本**: 4.3.0  
+**版本**: 4.3.1  
 **状态**: ✅ 生产就绪  
 **更新**: 2026-02-18
 
@@ -25,8 +25,9 @@
 | 📈 **v4.1.1 可观测性** | 注入/摘要/抢救指标 + 自愈调参落盘 | 🆕 v4.1.1 |
 | 🧭 **v4.2 PARA 二脑** | L0/L1/L2 目录递归检索 + Warm 自动写入 | 🆕 v4.2 |
 | 🛡️ **v4.3 稳态升级** | 缺依赖降级可用 + 混合召回 + 门禁稳定绿灯 | 🆕 v4.3 |
+| 🧠 **v4.3.1 智能上下文升级** | Pack/Card 模板 + 字段检查 + 安全 digest cron + 指标 schema 统一 | 🆕 v4.3.1 |
 
-> v4.3 使用与验收详见：`docs/SECOND_BRAIN_PARA.md`、`docs/USAGE_GUIDE.md` 与 `docs/LOCAL_DEPLOY.md`。
+> v4.3.1 使用与验收详见：`docs/SMART_CONTEXT_V4_3_1.md`、`docs/SECOND_BRAIN_PARA.md`、`docs/USAGE_GUIDE.md` 与 `docs/LOCAL_DEPLOY.md`。
 
 ---
 
@@ -362,14 +363,14 @@ health = nexus_health()
 ## 🚀 快速开始
 
 ### 安装（本地）
-> 当前版本为 v4.3，未发布到 PyPI。请使用源码安装。
+> 当前版本为 v4.3.1，未发布到 PyPI。请使用源码安装。
 ```bash
 git clone https://github.com/frank8ai/deepsea-nexus.git
 cd deepsea-nexus
 python -m pip install -r requirements.txt
 ```
 
-### 本地部署（v4.3）
+### 本地部署（v4.3.1）
 ```bash
 cd ~/.openclaw/workspace/skills/deepsea-nexus
 bash scripts/deploy_local_v4.sh --full
@@ -577,6 +578,13 @@ python3 v3_2_enhancement/run.py --demo
 ---
 
 ## 📝 更新日志
+
+### v4.3.1 (2026-02-18)
+- 新增 Deep Research Pack/Card 模板（`resources/sop/TEMPLATE.deep-research-*.md`）
+- 新增工件严格校验脚本（`scripts/validate_research_artifacts.py`）
+- 新增 Smart Context digest 报告脚本（`scripts/smart_context_digest.py`）
+- 新增安全 cron 安装脚本（`scripts/install_safe_cron.sh`，仅报告与本地沉淀）
+- 指标 schema 统一到 4.3.1（`smart_context` / `context_engine` / `nexus_core`）
 
 ### v4.3.0 (2026-02-18)
 - 缺少 `chromadb` 时，`nexus_core` 自动降级到可运行模式（不阻塞 `nexus_init`）

@@ -571,6 +571,9 @@ class SmartContextPlugin(NexusPlugin):
         if not self._metrics_path:
             return
         try:
+            payload.setdefault("schema_version", "4.3.1")
+            payload.setdefault("component", "smart_context")
+            payload.setdefault("event", "unknown")
             payload.setdefault("ts", datetime.now().isoformat())
             with open(self._metrics_path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
