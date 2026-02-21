@@ -376,16 +376,26 @@ cd ~/.openclaw/workspace/skills/deepsea-nexus
 bash scripts/deploy_local_v4.sh --full
 ```
 
+默认智能上下文规则：
+- 最近 `8` 轮保留原文
+- `9-20` 轮按摘要保留
+- `35` 轮后进入压缩阶段（压缩前抢救决策/下一步/阻塞）
+
 ### OpenClaw Hook 快速接入（推荐）
 ```bash
-# 使用内置 venv 作为 Hook 的 Python（可选）
-export NEXUS_PYTHON_PATH="$HOME/.openclaw/workspace/skills/deepsea-nexus/.venv-3.13/bin/python"
+# 推荐指定 Python（可选，不指定时会自动解析）
+export NEXUS_PYTHON_PATH="$HOME/miniconda3/envs/openclaw-nexus/bin/python"
 
 # 检查 Hook 状态
 openclaw hooks list
 openclaw hooks info nexus-auto-recall
 openclaw hooks info nexus-auto-save
 ```
+
+建议的 OpenClaw 联动：
+- 开启 `context-optimizer`（输入前做分层压缩）
+- 保持 `nexus-auto-recall` + `nexus-auto-save` 为 ready
+- 保持 `deepsea-rag-recall` 关闭（避免重复注入）
 
 ### 运行指标看板（低成本可观测）
 ```bash
