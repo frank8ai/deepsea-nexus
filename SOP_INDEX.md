@@ -47,6 +47,19 @@
 - Acceptance:
   - 31/31 strict pass (`python3 scripts/validate_sop_factory.py --sop <file> --strict`)
 
+## Governance Routing + Writeback (2026-02-19)
+- Canonical SOP:
+  - `resources/sop/2026-02/2026-02-19-sop-governance-routing-writeback-sop.md`
+- Scorecard:
+  - `resources/sop/2026-02/2026-02-19-sop-governance-routing-writeback-scorecard.md`
+- Iteration log:
+  - `resources/sop/2026-02/2026-02-19-sop-governance-routing-writeback-iteration-log.md`
+- Retrieval layers:
+  - `resources/sop/2026-02/2026-02-19-sop-governance-routing-writeback-sop.abstract.md`
+  - `resources/sop/2026-02/2026-02-19-sop-governance-routing-writeback-sop.overview.md`
+- Governance rule:
+  - HQ is execution entry; Nexus is canonical authority.
+
 ## Internet + Web3 SOP Bundle
 - Catalog:
   - `resources/sop/2026-02/2026-02-17-internet-web3-sop-catalog.md`

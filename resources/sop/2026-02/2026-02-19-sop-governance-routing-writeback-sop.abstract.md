@@ -1,0 +1,3 @@
+# L0 Abstract - SOP Governance Routing and Assetized Writeback
+
+Unify SOP governance with one rule: HQ is execution entry, Nexus is canonical authority. Every run must follow route -> execute -> writeback -> KPI/stop review, and must produce a fixed asset bundle (memory card, counterexample/risk note, parameter delta, reusable snippet). This SOP also standardizes Top10 governance upgrades: routing loop, single source control, writeback, KPI/stop fields, mother+variant management, P0/P1/P2 consistency checks, research artifact naming, HQ scorecard linkage, pilot schema, and automation trigger policy.
