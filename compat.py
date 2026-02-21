@@ -13,6 +13,7 @@ Both APIs work simultaneously - no breaking changes!
 
 import asyncio
 import os
+from pathlib import Path
 
 try:
     from .compat_async import run_coro_sync
@@ -31,6 +32,34 @@ except ImportError:
     from plugins.nexus_core_plugin import RecallResult
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_default_config_path() -> Optional[str]:
+    """
+    Resolve default Deep-Sea Nexus config path when caller does not pass one.
+
+    This prevents "config written but not applied" when hooks invoke nexus_init()
+    without an explicit config_path.
+    """
+    candidates = []
+    try:
+        candidates.append(Path(__file__).resolve().with_name("config.json"))
+    except Exception:
+        pass
+
+    home = Path(os.environ.get("HOME", "~")).expanduser()
+    candidates.extend([
+        home / ".openclaw" / "workspace" / "skills" / "deepsea-nexus" / "config.json",
+        home / ".openclaw" / "skills" / "deepsea-nexus" / "config.json",
+    ])
+
+    for path in candidates:
+        try:
+            if path.exists():
+                return str(path)
+        except Exception:
+            continue
+    return None
 
 try:
     from .brain import configure_brain, brain_retrieve as _brain_retrieve, brain_write as _brain_write, checkpoint as _brain_checkpoint, rollback as _brain_rollback, list_versions as _brain_list_versions, backfill_embeddings as _brain_backfill_embeddings
@@ -66,10 +95,11 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
     if plugin and plugin.state == PluginState.ACTIVE:
         return True
     
-    # Load configuration
-    config = get_config_manager(config_path)
-    if config_path:
-        config.load_file(config_path)
+    # Load configuration (prefer explicit path; otherwise auto-discover config.json)
+    resolved_config_path = config_path or _resolve_default_config_path()
+    config = get_config_manager(resolved_config_path)
+    if resolved_config_path:
+        config.load_file(resolved_config_path)
 
     cfg = config.get_all()
     if not isinstance(cfg, dict):
@@ -102,7 +132,7 @@ def nexus_init(config_path: Optional[str] = None) -> bool:
             from app import create_app
 
         # Create and initialize app (handles plugin registration + dependency order)
-        app = create_app(config_path)
+        app = create_app(resolved_config_path)
         return bool(run_coro_sync(app.initialize()))
     
     # Initialize existing plugin
