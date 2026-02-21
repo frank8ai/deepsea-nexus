@@ -14,7 +14,10 @@ Both APIs work simultaneously - no breaking changes!
 import asyncio
 import os
 
-from .compat_async import run_coro_sync
+try:
+    from .compat_async import run_coro_sync
+except ImportError:
+    from compat_async import run_coro_sync
 from typing import List, Dict, Any, Optional
 import logging
 
